@@ -152,6 +152,27 @@ BOOKS["kitchen"].update({
     "wall-tall": dict(size="1024x1536", ref=["bobo/bg-day"], prompt=KWALL.format(things="At the top is a white-framed window with coral curtains looking out on green hills. The rest of the wall is empty.")),
     "counter": dict(size="1536x1024", ref=["bobo/bg-day"], prompt="In the same cut paper and gouache style as the reference picture, but with no characters: the front of a kitchen counter seen straight on, filling the whole picture from edge to edge. Along the very top is a thick honey-coloured wooden worktop, a straight level band about one eighth of the picture tall. Below it, filling the rest, is a row of four wide teal cupboard doors, each with one small round yellow knob. No wall, no floor, nothing on the worktop."),
 })
+BOOKS["town"] = {
+    "letter": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=OBJ + STYLEREF + "one closed cream paper envelope seen from the front, with a red heart sticker sealing its flap. No face, no characters, no writing."),
+    "balloon": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=OBJ + STYLEREF + "one round red party balloon with a small knot and a short curly string hanging below it. No face, no characters."),
+}
+BOOKS["paint"] = {
+    "studio": dict(size="1536x1024", ref=["bobo/bg-day"], prompt="In the same cut paper and gouache style as the reference picture, but an indoor scene with no characters: the wall of a child's art studio seen straight on, filling the picture. Warm peach-cream wallpaper with faint vertical wooden plank lines. Along the very top hangs a string with a few small colourful children's paintings pegged to it. The bottom fifth of the picture is a warm wooden plank floor, with a straight level line where the wall meets the floor. The middle of the wall is completely plain and empty. No furniture, no easel, no people."),
+}
+# ---- faces: the heads used for player pictures, the hide-and-seek animals and the shopkeepers in Pip's Town
+NEWHEAD = OBJ + STYLEREF + "only the head of {what}, with no neck, no body and no shoulders, facing the viewer straight on, with big shiny dark eyes with a white sparkle, rosy cheeks and a small happy smile. Just the head."
+BOOKS["faces"] = {
+    "panda": dict(size="1024x1024", alpha=True, max=384, ref=["star/panda"], prompt=HEAD), "cat": dict(size="1024x1024", alpha=True, max=384, ref=["star/cat"], prompt=HEAD), "owl": dict(size="1024x1024", alpha=True, max=384, ref=["star/owl"], prompt=HEAD),
+    "lion": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a friendly lion cub with golden yellow fur, a fluffy round orange-brown mane all the way round, small round ears and a cream muzzle")),
+    "pig": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a pink piglet with a round snout, small floppy ears and a white baker's hat")),
+    "chick": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a fluffy yellow chick with a small orange beak and a little tuft of feathers on top")),
+    "mouse": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a soft grey mouse with big round ears with pink insides, a pink nose, whiskers and a small blue postman's cap")),
+    "hedgehog": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a hedgehog with a cream face, a small dark nose and soft brown rounded spikes all round the back of its head")),
+    "dog": dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=NEWHEAD.format(what="a tan puppy with floppy brown ears, a cream muzzle and a dark nose")),
+    "felt": dict(size="1024x1024", ref=["bobo/bg-day"], prompt="A flat, even, seamless texture that fills the whole picture edge to edge: soft pale cream-white wool felt seen close up, with a gentle fuzzy fibre feel and very slight uneven shading. Very light and low contrast. No objects, no shapes, no stitches, no border, just the felt surface."),
+}
+for _id in ["panda", "cat", "owl", "lion", "pig", "chick", "mouse", "hedgehog", "dog"]:
+    BOOKS["faces"][_id + "-shut"] = dict(size="1024x1024", alpha=True, max=384, ref=[_id], prompt=SHUT)
 BOOKS["letters"] = {}
 for ch, (col, feat) in MONSTERS.items():
     BOOKS["letters"][ch] = dict(size="1024x1024", alpha=True, max=512, ref=["pip/pip"], prompt=CUT + STYLEREF + MON.format(col=col, feat=feat, mouth="a small closed smile"))

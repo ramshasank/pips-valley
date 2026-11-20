@@ -221,7 +221,10 @@
         sp('chalk', V.toys.chalkboard, [-100, -240, 200, 242]);
         const a = n.add(new E.Node({ x: 140, y: 0, sprite: A.sprite('letterA', [-70, -150, 140, 152], V.toys.letterA) }));
         const blink = blinker();
-        a.add(new E.Node({ draw(g) { const b = blink(); for (const ex of [-14, 16]) { g.beginPath(); g.ellipse(ex, -96, 7, 9 * Math.max(0.12, 1 - b), 0, 0, 7); g.fillStyle = A.C.ink; g.fill(); if (b < 0.5) { g.beginPath(); g.arc(ex + 2.5, -99, 2.6, 0, 7); g.fillStyle = '#fff'; g.fill(); } } } }));
+        // once the Letter Monsters pictures are in, the real "a" monster stands here, darkened at night like everything else
+        let picA = false;
+        A.letters.ready().then((ok) => { if (!ok || !a.parent) return; picA = true; a.sprite = A.sprite('letterAP', [-84, -166, 168, 176], (g, s) => { A.letters.monster(g, s, 'a', 160, {}); const t = A.ctTint(); if (t) { g.globalCompositeOperation = 'source-atop'; g.globalAlpha = t[1]; g.fillStyle = t[0]; g.fillRect(-90, -170, 180, 190); } }); });
+        a.add(new E.Node({ draw(g) { if (picA) return; const b = blink(); for (const ex of [-14, 16]) { g.beginPath(); g.ellipse(ex, -96, 7, 9 * Math.max(0.12, 1 - b), 0, 0, 7); g.fillStyle = A.C.ink; g.fill(); if (b < 0.5) { g.beginPath(); g.arc(ex + 2.5, -99, 2.6, 0, 7); g.fillStyle = '#fff'; g.fill(); } } } }));
         a.update = () => { a.sy = 1 + Math.sin(st.t * 2.2) * 0.025; a.sx = 1 - Math.sin(st.t * 2.2) * 0.02; };
         n.hop = a;
       }

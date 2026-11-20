@@ -87,8 +87,18 @@
   T.hand = (g, s) => A.hand(g, s, 1);
 
   /* ---------------- things the van carries ---------------- */
+  /* Painted pictures: the three friends are the animals from the story books, and the things the van carries
+     are painted too. The street, shops and van stay as they are. Fetched when the app starts; until every
+     picture has arrived the paper drawings are used. */
+  const PIC = {}, PSRC = { bear: 'bobo/bobo', 'bear-happy': 'bobo/bobo-happy', bunny: 'bobo/bunny', fox: 'bobo/fox', cake: 'toot/cakes', flowers: 'toot/flowers', apples: 'toot/apples', letter: 'town/letter', balloon: 'town/balloon' };
+  let pLeft = Object.keys(PSRC).length, pBad = false;
+  T.pics = false;
+  for (const nm in PSRC) { const im = new Image(); im.onload = () => { PIC[nm] = im; if (--pLeft <= 0) T.pics = !pBad; }; im.onerror = () => { pBad = true; pLeft--; }; im.src = 'img/' + PSRC[nm] + '.webp'; }
+  const FRIEND_H = { bear: 150, bunny: 156, fox: 146 };
+
   /** Centred on (0,0), about 80 units across. */
   T.item = function (g, s, name) {
+    if (T.pics && PIC[name]) { const im = PIC[name], k = Math.min(88 / im.width, 88 / im.height); g.drawImage(im, -im.width * k / 2, -im.height * k / 2, im.width * k, im.height * k); return; }
     if (name === 'cake') {
       piece(g, s, '#FBF8F1', (h) => h.ellipse(0, 26, 40, 9, 0, 0, 7), { shadow: 0.5, light: 0 });
       piece(g, s, '#F6D9A8', (h) => A.rect(h, -30, -6, 60, 32, 8, 2, 0.6), { shadow: 0.4, box: bx(-30, -6, 60, 32) });
@@ -227,6 +237,11 @@
   const COAT = { bear: ['#A8754F', '#5B8FC7'], bunny: ['#F1E7DA', '#EE8FB0'], fox: ['#E3793F', '#6FA65F'] };
   T.friend = function (g, s, kind, st) {
     st = st || {}; const [fur, coat] = COAT[kind]; const up = st.arms || 0;
+    if (T.pics && PIC[kind]) {
+      const im = up > 0.3 && PIC[kind + '-happy'] ? PIC[kind + '-happy'] : PIC[kind], h = FRIEND_H[kind] * (im === PIC[kind] ? 1 : 1.05), w = h * im.width / im.height;
+      g.beginPath(); g.ellipse(0, 0, 40, 7, 0, 0, 7); g.fillStyle = 'rgba(40,34,60,.16)'; g.fill();
+      g.save(); g.rotate(im === PIC[kind] ? Math.sin(up * 9) * 0.05 : 0); g.drawImage(im, -w / 2, 4 - h, w, h); g.restore(); return;
+    }
     g.beginPath(); g.ellipse(0, 0, 36, 7, 0, 0, 7); g.fillStyle = 'rgba(40,34,60,.16)'; g.fill();
     for (const x of [-14, 14]) { g.beginPath(); g.ellipse(x, -4, 12, 7, 0, 0, 7); g.fillStyle = A.shade(fur, -0.1); g.fill(); }
     for (const side of [-1, 1]) { g.save(); g.translate(side * 24, -44); g.rotate(side * (0.45 - up * 2.4)); g.beginPath(); g.ellipse(0, 12, 8, 16, 0, 0, 7); g.fillStyle = A.shade(fur, -0.04); g.fill(); g.restore(); }

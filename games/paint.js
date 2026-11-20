@@ -8,6 +8,10 @@
    Spoken lines are the ones Draw and Coloring already had recorded. */
 (function () {
   'use strict';
+  /* The painted studio wall (img/paint). Fetched when the app starts; the drawn room is used until it arrives. */
+  const STUDIO = { im: new Image(), ok: false, bad: false };
+  STUDIO.wait = new Promise((res) => { STUDIO.im.onload = () => { STUDIO.ok = true; res(true); }; STUDIO.im.onerror = () => { STUDIO.bad = true; res(false); }; });
+  STUDIO.im.src = 'img/paint/studio.webp';
   const A = K.art, E = K.engine, Pic = A.pictures;
   const POTS = [
     { name: 'red', c: '#E2483F' }, { name: 'orange', c: '#F08A35' }, { name: 'yellow', c: '#F5CD3D' }, { name: 'green', c: '#57A85B' }, { name: 'blue', c: '#3F7FD0' },
@@ -43,11 +47,17 @@
     const anims = [], undo = [];
 
     /* ---------- room ---------- */
-    st.add({ z: 0, sprite: A.sprite('studio' + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => {
+    if (!STUDIO.ok && !STUDIO.bad) STUDIO.wait.then((ok) => { if (ok && ctx.alive) K.go('paint'); });      // the painted wall arrived late: start again with it
+    st.add({ z: 0, sprite: A.sprite('studio' + (STUDIO.ok ? 'P' : '') + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => {
+      if (STUDIO.ok) {     // the painted studio wall; its floor (the bottom sixth of the picture) is laid along the bottom of the screen
+        const im = STUDIO.im, fy = H - 96, wy = im.height * 0.835, sc = Math.max(W / im.width, fy / wy), dw = im.width * sc, x0 = W / 2 - dw / 2;
+        g.drawImage(im, 0, 0, im.width, wy, x0, fy - wy * sc, dw, wy * sc); g.drawImage(im, 0, wy, im.width, im.height - wy, x0, fy - 1, dw, 98);
+      } else {
       g.beginPath(); g.rect(0, 0, W, H); A.paper(g, s, '#E9D6B8', { shadow: 0, box: { x: 0, y: 0, w: 0, h: H }, light: 0.04, grain: 0.3 });
       for (let x = 0; x < W; x += 118) A.line(g, 'rgba(150,110,70,.22)', 3, (h) => { h.moveTo(x, 0); h.lineTo(x + 2, H); });
       const fy = H - 96; g.beginPath(); g.rect(0, fy, W, 96); A.paper(g, s, '#B98558', { shadow: 0, grain: 0.3, light: 0 });
       A.line(g, 'rgba(90,60,40,.3)', 3, (h) => { h.moveTo(0, fy); h.lineTo(W, fy); for (let x = 60; x < W; x += 210) { h.moveTo(x, fy); h.lineTo(x - 40, H); } });
+      }
       // drawing board with clips
       g.beginPath(); A.rect(g, px - 24, py - 24, P + 48, P + 48, 16, 4, 1.2); A.paper(g, s, '#C99666', { shadow: 1.3, depth: 1.5, box: { x: px, y: py, w: P, h: P } });
       g.beginPath(); g.rect(px, py, P, P); A.paper(g, s, Pic.PAPER, { shadow: 0.9, grain: 0.1, light: 0 });
