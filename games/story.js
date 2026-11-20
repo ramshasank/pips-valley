@@ -34,11 +34,12 @@
     const bs = port ? 0.7 : Math.min(1, (W - 360) / 3 / 280), gapX = port ? 180 : Math.min(330, (W - 300) / 3);
     const shelfY = port ? 790 : 640, shelfW = port ? 536 : gapX * 3 + 30;
     function coverSprite(t) {
-      return A.sprite('stcover' + t.id, [-124, -164, 248, 328], (g, s) => {
+      const pc = t.art && t.art.cover && t.pics;
+      return A.sprite('stcover' + t.id + (pc ? 'P' : ''), [-124, -164, 248, 328], (g, s) => {
         g.beginPath(); A.rect(g, -120, -160, 240, 320, 14, 3, 1); A.paper(g, s, t.color, { shadow: 1.3, depth: 1.4, box: { x: -120, y: -160, w: 240, h: 320 }, light: 0.08 });
         g.beginPath(); A.rect(g, -120, -160, 26, 320, [14, 2, 2, 14], 4, 0.5); g.fillStyle = A.shade(t.color, -0.1); g.fill();
         g.beginPath(); A.rect(g, -80, -138, 184, 190, 12, 5, 1); A.paper(g, s, t.sky || '#CFE6E8', { shadow: 0.5, light: 0.04, box: { x: -80, y: -138, w: 184, h: 190 } });
-        g.save(); g.beginPath(); g.rect(-80, -138, 184, 190); g.clip(); g.translate(12, 40); t.cover(g, s); g.restore();
+        g.save(); g.beginPath(); A.rect(g, -80, -138, 184, 190, 12, 5, 1); g.clip(); g.translate(12, 40); if (pc) t.art.cover(g, pc); else t.cover(g, s); g.restore();
         g.fillStyle = '#FBF6EC'; g.textAlign = 'center'; g.textBaseline = 'middle';
         const words = t.title.split(' '); const mid = Math.ceil(words.length / 2); const rows = [words.slice(0, mid).join(' '), words.slice(mid).join(' ')].filter(Boolean);
         let fs = 30; g.font = `700 ${fs}px ${A.FONT_TITLE}`; while (Math.max(...rows.map((r) => g.measureText(r).width)) > 186 && fs > 16) { fs -= 2; g.font = `700 ${fs}px ${A.FONT_TITLE}`; }
@@ -55,7 +56,7 @@
       tales.forEach((t, i) => {
         const x = W / 2 + (i - (tales.length - 1) / 2) * gapX, y = shelfY - 164 * bs - 2;
         const n = shelf.add(new E.Node({ x, y, z: 5, sx: bs, sy: bs, rot: (i - 1) * 0.025, hit: { x: -120, y: -160, w: 240, h: 320 }, pad: 6, label: t.title, sprite: coverSprite(t), ph: i * 1.7 }));
-        n.update = () => { n.rot = (i - 1) * 0.025 + Math.sin(st.t * 1.1 + n.ph) * 0.012; };
+        n.update = () => { n.rot = (i - 1) * 0.025 + Math.sin(st.t * 1.1 + n.ph) * 0.012; if (t.pics && !n.pic) { n.pic = true; n.sprite = coverSprite(t); } };
         const rib = n.add(new E.Node({ x: 84, y: -160, z: 2, visible: !!store[t.id], draw: (g, s) => St.ribbon(g, s) }));
         if (justRead === t.id) { rib.visible = true; rib.y = -330; rib.alpha = 0; rib.to({ y: -160, alpha: 1 }, { dur: 0.7, ease: 'back', delay: 0.5 }).then(() => { K.sfx.sparkle(); const p = st.toScreen(n, 84, -110); ctx.fx.burst(p.x, p.y, { n: 14 }); }); }
         n.onTap = () => { if (view !== 'shelf') return; view = 'opening'; K.sfx.pop(); St.snd.page(); n.to({ sx: bs * 1.14, sy: bs * 1.14, y: y - 30 }, { dur: 0.25, ease: 'back' }); ctx.after(200, () => cover(() => openBook(t))); };
@@ -172,11 +173,15 @@
         o = o || {}; const im = pics['bg-' + kind], hz = art.horizon, flat = (art.flat || []).includes(kind);
         const sc = flat ? Math.max(W / im.width, H / im.height) : Math.max(W / im.width, G / (im.height * hz), (H - G) / (im.height * (1 - hz)));
         const orb = o.moon ? ['moon', W * (o.moon === 2 ? 0.84 : W < 1000 ? 0.36 : 0.21), W < 1000 ? 250 : 200, W < 1000 ? 0.8 : 1.15] : o.sun ? ['sun', W * 0.86, W < 1000 ? 260 : 200, W < 1000 ? 0.75 : 0.95] : null;
-        const osp = orb && withMood(() => A.sprite('storb' + orb[0], [-170, -170, 340, 340], (g, s) => St.prop[orb[0]](g, s, {}))  /* room for the glow */);
+        const osp = orb && !pics[orb[0]] && withMood(() => A.sprite('storb' + orb[0], [-170, -170, 340, 340], (g, s) => St.prop[orb[0]](g, s, {}))  /* room for the glow */);
         const n = node.add(new E.Node({ z: 0, kind }));
         n.draw = (g) => {
           g.drawImage(im, W / 2 - im.width * sc / 2, flat ? H / 2 - im.height * sc / 2 : G - im.height * hz * sc, im.width * sc, im.height * sc);
-          if (orb) g.drawImage(osp.canvas, orb[1] - osp.ox * orb[3], orb[2] - osp.oy * orb[3], osp.w * orb[3], osp.h * orb[3]);
+          if (orb && pics[orb[0]]) {
+            const om = pics[orb[0]], d = (orb[0] === 'sun' ? 210 : 150) * orb[3];
+            if (orb[0] === 'moon') { const gr = g.createRadialGradient(orb[1], orb[2], d * 0.3, orb[1], orb[2], d); gr.addColorStop(0, 'rgba(255,244,200,.35)'); gr.addColorStop(1, 'rgba(255,244,200,0)'); g.fillStyle = gr; g.beginPath(); g.arc(orb[1], orb[2], d, 0, 7); g.fill(); }
+            g.save(); g.translate(orb[1], orb[2]); if (orb[0] === 'sun') g.rotate(Math.sin(st.t * 0.8) * 0.06); g.drawImage(om, -d / 2, -d / 2, d, d * om.height / om.width); g.restore();
+          } else if (orb) g.drawImage(osp.canvas, orb[1] - osp.ox * orb[3], orb[2] - osp.oy * orb[3], osp.w * orb[3], osp.h * orb[3]);
         };
         return n;
       };

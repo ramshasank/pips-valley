@@ -18,6 +18,9 @@
     K.tales.push(t);
   };
   const cap = (s) => s[0].toUpperCase() + s.slice(1);
+  /* Shelf covers from the generated pictures. The cover window is 184 x 190 with (0, 0) near its bottom middle. */
+  const coverBg = (g, im) => { const sc = 190 / im.height * 1.15; g.drawImage(im, -im.width * sc / 2, -70 - im.height * 0.53 * sc, im.width * sc, im.height * sc); };
+  const coverPic = (g, im, x, y, h) => { const w = h * im.width / im.height; g.drawImage(im, x - w / 2, y - h, w, h); };
   const fall = (t) => t * t;
   /** A bystander that hops and makes its sound when tapped. */
   const toy = (P, n, snd, label) => { n.label = label || n.kind; n.onTap = () => { P.hop(n); if (snd) P.snd[snd](); }; return n; };
@@ -33,7 +36,7 @@
   tale({
     id: 'star', title: 'Little Lost Star', voice: 'story-star', color: '#4A4A8C', sky: '#2B3466', vars: { friend: ['owl', 'cat', 'panda'] },
     art: { dir: 'img/star', horizon: 0.53, flat: ['space'], sky: ['star'],
-      names: ['star', 'star-happy', 'star-sad', 'star-wink', 'ministar', 'pip', 'pip-happy', 'pip-oh', 'owl', 'cat', 'panda', 'house', 'rocket', 'rocket-riders', 'cloud', 'bg-night', 'bg-space', 'bunny=bobo/bunny'],
+      names: ['star', 'star-happy', 'star-sad', 'star-wink', 'ministar', 'pip', 'pip-happy', 'pip-oh', 'owl', 'cat', 'panda', 'house', 'rocket', 'rocket-riders', 'cloud', 'bg-night', 'bg-space', 'moon', 'bunny=bobo/bunny'],
       h: { star: 138, pip: 168, owl: 170, cat: 190, panda: 190, bunny: 200 },
       props: { house: [340, 0, 10], cloud: [230, 0, 70] },
       custom: {
@@ -48,6 +51,7 @@
           const gr = g.createRadialGradient(0, 0, 10, 0, 0, 80); gr.addColorStop(0, `rgba(255,236,160,${0.5 * gl})`); gr.addColorStop(1, 'rgba(255,236,160,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 80, 0, 7); g.fill();
           g.globalAlpha *= 0.4 + 0.6 * gl; g.drawImage(im, -w / 2, -h / 2, w, h); g.restore();
         } },
+      cover(g, p) { coverBg(g, p['bg-night']); const gr = g.createRadialGradient(0, -86, 10, 0, -86, 95); gr.addColorStop(0, 'rgba(255,236,160,.6)'); gr.addColorStop(1, 'rgba(255,236,160,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, -86, 95, 0, 7); g.fill(); coverPic(g, p.star, 0, -28, 118); },
       actors: (kind) => kind },
     extra: ['Bump!', 'Whoosh!', 'She said, "Thank you, Pip!"', 'three', 'two', 'one'],
     cover(g, s) { for (const [x, y, r] of [[-60, -150, 3], [50, -120, 2.5], [-30, -90, 2], [70, -160, 3], [10, -165, 2]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = '#FFF6DA'; g.fill(); } g.translate(0, 0); g.scale(0.95, 0.95); St.star(g, s, { glow: 1 }, 0); },
@@ -198,10 +202,11 @@
   tale({
     id: 'toot', title: 'Toot the Little Train', voice: 'story-toot', color: '#C9553F', sky: '#CFE6E8', vars: { cargo: CARGO },
     art: { dir: 'img/toot', horizon: 0.53, hill: '#A6CF2B',
-      names: ['toot', 'toot-happy', 'toot-oh', 'toot-sleep', 'wheel', 'wagon', 'apples', 'cakes', 'flowers', 'shed', 'town', 'bg-eve', 'bg-day=bobo/bg-day', 'cloud=star/cloud', 'bunny=bobo/bunny', 'bear=bobo/bobo', 'bear-happy=bobo/bobo-happy', 'frog=bobo/frog', 'cat=star/cat', 'owl=star/owl'],
+      names: ['toot', 'toot-happy', 'toot-oh', 'toot-sleep', 'wheel', 'wagon', 'apples', 'cakes', 'flowers', 'shed', 'town', 'bg-eve', 'sun', 'moon=star/moon', 'bg-day=bobo/bg-day', 'cloud=star/cloud', 'bunny=bobo/bunny', 'bear=bobo/bobo', 'bear-happy=bobo/bobo-happy', 'frog=bobo/frog', 'cat=star/cat', 'owl=star/owl'],
       h: { bunny: 200, bear: 196, 'bear-happy': 205, frog: 140, cat: 190, owl: 170 },
       props: { shed: [450, 0, 10], town: [700, 0, 10], cloud: [230, 0, 70] },
       custom: { toot: tootPic, wagon: (g, n, t, pics) => wagonPic(g, n, pics, 212) },
+      cover(g, p) { coverBg(g, p['bg-day']); g.save(); g.translate(40, -8); g.scale(0.44, 0.44); tootPic(g, { cargo: 'apples', mouth: 'open' }, 0, p); g.restore(); },
       actors: (kind) => kind },
     extra: ['Choo choo!', 'Oh no!', 'He rolled back down.', 'Push, push, push!', 'one', 'two', 'three'],
     cover(g, s) { g.beginPath(); g.ellipse(0, 70, 150, 60, 0, 0, 7); g.fillStyle = '#86B585'; g.fill(); g.translate(26, 26); g.scale(0.42, 0.42); St.toot(g, s, { cargo: 'apples' }); },
@@ -318,9 +323,10 @@
     id: 'bobo', title: 'Bobo and the Puddle', voice: 'story-bobo', color: '#2F8F8A', sky: '#AEBDC8', vars: { pal: PALS },
     // generated pictures (tools/gen_images.py). h: height in scene units (a name like bobo-happy is drawn at bobo's scale); props: [width, centre x, bottom y]
     art: { dir: 'img/bobo', horizon: 0.53,
-      names: ['bobo', 'bobo-happy', 'bobo-sleep', 'bobo-mud', 'mama', 'frog', 'bunny', 'fox', 'bg-rain', 'bg-day', 'den', 'cloud', 'rainbow', 'puddle'],
+      names: ['bobo', 'bobo-happy', 'bobo-sleep', 'bobo-mud', 'mama', 'frog', 'bunny', 'fox', 'bg-rain', 'bg-day', 'den', 'cloud', 'rainbow', 'puddle', 'sun=toot/sun'],
       h: { bobo: 196, 'bobo-happy': 205, 'bobo-sleep': 200, 'bobo-mud': 206, mama: 200, frog: 140, bunny: 200, fox: 185 },
       props: { den: [330, 0, 12], cloud: [230, 0, 70], rainbow: [700, 0, 6], puddle: [430, 0, 54] },
+      cover(g, p) { coverBg(g, p['bg-rain']); const im = p.puddle, w = 170; g.drawImage(im, -w / 2, -22, w, w * im.height / im.width); coverPic(g, p['bobo-happy'], 0, 2, 132); },
       actors: (kind, o) => (kind === 'bear' ? (o.scarf ? 'mama' : 'bobo') : kind) },
     extra: ['Drip, drop, drip, drop.', 'Dip!', 'Splash, splash, splash!'],
     cover(g, s) { A.line(g, 'rgba(255,255,255,.7)', 3, (h) => { for (const [x, y] of [[-60, -150], [-20, -120], [40, -160], [70, -110], [10, -80], [-70, -90]]) { h.moveTo(x, y); h.lineTo(x - 4, y + 18); } }); g.beginPath(); g.ellipse(0, 78, 96, 20, 0, 0, 7); g.fillStyle = '#7FB7D6'; g.fill(); g.translate(0, 74); g.scale(0.8, 0.8); St.critter(g, s, { blink: 0 }, 'bear'); },
