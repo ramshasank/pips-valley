@@ -1,0 +1,9 @@
+{
+  "name": "Pip's Valley",
+  "short_name": "Pip's Valley",
+  "start_url": ".",
+  "display": "fullscreen",
+  "orientation": "any",
+  "background_color": "#8fd3ff",
+  "theme_color": "#8fd3ff"
+}

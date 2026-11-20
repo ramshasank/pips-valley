@@ -1,0 +1,84 @@
+/* Pip's Playhouse — shell for the canvas screens: embedded fonts, the stage canvas and the
+   invisible button layer that mirrors tappable things for screen readers, keyboards and tests. */
+@font-face { font-family: "Fraunces"; font-weight: 100 900; font-display: swap; src: url("../fonts/fraunces.woff2") format("woff2"); }
+@font-face { font-family: "Andika"; font-weight: 400; font-display: swap; src: url("../fonts/andika-400.woff2") format("woff2"); }
+@font-face { font-family: "Andika"; font-weight: 700; font-display: swap; src: url("../fonts/andika-700.woff2") format("woff2"); }
+
+:root {
+  --font-display: "Fraunces", Georgia, serif;
+  --font-body: "Andika", "Avenir Next", system-ui, sans-serif;
+  --paper: #FBF6EC;
+  --ink: #2E2A3B;
+}
+#app { background: #CFE6E8; }
+.stage-canvas { position: absolute; inset: 0; display: block; }
+.stage-a11y { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.stage-a11y .proxy { position: absolute; opacity: 0; pointer-events: none; border-radius: 28px; }
+.stage-a11y .proxy:focus-visible { opacity: 1; outline: 5px solid var(--ink); outline-offset: 2px; background: transparent; }
+
+/* Player picker and setup: drawn faces instead of emoji. */
+.tile canvas.face { width: 62%; height: auto; aspect-ratio: 1; }
+.seg canvas.face { display: block; }
+
+/* ---------- paper sheets: player picker, player setup, grown-ups ---------- */
+.sheet { background:
+    radial-gradient(120% 80% at 50% 0%, rgba(255,255,255,.55), rgba(255,255,255,0) 60%),
+    repeating-linear-gradient(90deg, rgba(120,90,50,.035) 0 2px, rgba(120,90,50,0) 2px 7px),
+    #EFE4D0; color: var(--ink); }
+.sheet .act-bar { padding-block: 14px 6px; }
+.sheet .act-prompt { font-family: var(--font-display); font-weight: 650; font-size: clamp(26px, 5vmin, 44px); color: var(--ink); text-shadow: none; letter-spacing: -.01em; }
+.sheet .round-btn { background: var(--paper); box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 6px 14px rgba(70,50,30,.18), 0 1px 2px rgba(70,50,30,.2); }
+.sheet .round-btn:active { transform: scale(.94); box-shadow: 0 2px 5px rgba(70,50,30,.2); }
+.sheet canvas.icon { width: 40px; height: 40px; display: block; }
+.sheet .panel { padding-block: 22px 40px; }
+
+.sheet .tiles.players { max-width: 980px; margin: 0 auto; grid-template-columns: repeat(auto-fill, minmax(clamp(140px, 24vmin, 210px), 1fr)); gap: clamp(14px, 3vmin, 26px); }
+.sheet .tile.player { aspect-ratio: 5 / 6; border-radius: 26px; gap: 10px; padding: 14px 10px 16px; color: var(--ink); background: var(--paper);
+  box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 10px 22px rgba(70,50,30,.16), 0 2px 3px rgba(70,50,30,.16); transition: transform .14s cubic-bezier(.3,1.5,.5,1); }
+.sheet .tile.player:nth-child(odd) { rotate: -1.2deg; }
+.sheet .tile.player:nth-child(even) { rotate: 1deg; }
+.sheet .tile.player:active { transform: scale(.95); }
+.sheet .tile.player .halo { width: 74%; aspect-ratio: 1; border-radius: 50%; display: grid; place-items: center; background: var(--tint, #E7DCC8); box-shadow: inset 0 3px 8px rgba(70,50,30,.12); }
+.sheet .tile.player .halo canvas.face { width: 96% !important; height: auto !important; aspect-ratio: 1; }
+.sheet .tile.player .label { font-family: var(--font-display); font-weight: 650; font-size: clamp(19px, 3.4vmin, 28px); text-shadow: none; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sheet .tile.player .edit { font: 700 14px var(--font-body); padding: 3px 12px; border-radius: 99px; background: #E7DCC8; }
+.sheet .tile.player.add { background: transparent; box-shadow: none; outline: 3px dashed rgba(46,42,59,.28); outline-offset: -3px; }
+.sheet .tile.player.add .halo { background: rgba(255,255,255,.6); box-shadow: none; }
+.sheet .tile.player.add .halo canvas.icon { width: 46%; height: auto; aspect-ratio: 1; }
+
+.sheet .card { background: var(--paper); border-radius: 26px; box-shadow: 0 1px 0 rgba(255,255,255,.9) inset, 0 12px 28px rgba(70,50,30,.16), 0 2px 3px rgba(70,50,30,.14); }
+.sheet .form { max-width: 560px; padding: clamp(20px, 4vmin, 32px); gap: 22px; font-family: var(--font-body); }
+.sheet .form label { gap: 8px; font-weight: 700; font-size: 17px; }
+.sheet .form .hint { font-size: 15px; line-height: 1.4; opacity: .7; }
+.sheet .form input[type=text], .sheet .form select { font: inherit; font-weight: 400; padding: 13px 15px; border-radius: 14px; border: 2px solid #DCCFB8; background: #fff; color: var(--ink); max-width: 100%; }
+.sheet .form input[type=text]:focus, .sheet .form select:focus { outline: 3px solid #2F8F8A; outline-offset: 1px; border-color: transparent; }
+.sheet .seg button { padding: 10px 18px; border-radius: 14px; background: #EFE6D6; font-weight: 700; transition: transform .12s; }
+.sheet .seg button:active { transform: scale(.95); }
+.sheet .seg button.on { background: #2F8F8A; color: #fff; }
+.sheet .seg.faces { gap: 10px; }
+.sheet .seg.faces button { padding: 5px; border-radius: 50%; background: #EFE6D6; }
+.sheet .seg.faces button.on { background: #F2B441; box-shadow: 0 0 0 3px var(--ink); }
+.sheet .seg.faces canvas.face { width: 56px !important; height: 56px !important; }
+.sheet .big-btn { font-family: var(--font-display); font-weight: 700; font-size: clamp(22px, 4vmin, 30px); padding: .5em 1.5em; background: #E2574C; box-shadow: 0 8px 18px rgba(190,60,50,.32), 0 2px 0 #C2473D; }
+.sheet .big-btn:active { transform: translateY(2px) scale(.97); box-shadow: 0 3px 8px rgba(190,60,50,.3); }
+.sheet .soft-btn { justify-self: start; font-weight: 700; padding: 11px 20px; border-radius: 14px; background: var(--ink); color: #fff; }
+.sheet .soft-btn:active { transform: scale(.96); }
+.sheet .quiet { justify-self: start; text-decoration: underline; opacity: .65; }
+.sheet .quiet.danger { color: #C2473D; opacity: 1; font-weight: 700; }
+
+/* ---------- the visible screen ---------- */
+/* Height comes from the measured visible area (js/main.js); the bottom keeps clear of the home bar. */
+html, body { height: var(--app-h, 100dvh); }
+body { position: fixed; inset: 0 0 auto 0; width: 100%; }
+#app { height: var(--app-h, 100dvh); }
+#stage { bottom: env(safe-area-inset-bottom, 0px); }
+
+/* A phone on its side: too short to play, so ask for it to be turned. */
+#turn { display: none; position: fixed; inset: 0; z-index: 500; background: #EFE4D0; color: var(--ink);
+  flex-direction: column; align-items: center; justify-content: center; gap: 14px; font-family: var(--font-display); }
+#turn p { margin: 0; font-size: 26px; font-weight: 650; }
+.turn-phone { width: 64px; height: 108px; border-radius: 14px; background: var(--paper); border: 5px solid var(--ink);
+  box-shadow: 0 8px 18px rgba(70,50,30,.22); position: relative; animation: turn-up 2.4s ease-in-out infinite; }
+.turn-phone i { position: absolute; left: 50%; bottom: 7px; width: 22px; height: 5px; margin-left: -11px; border-radius: 3px; background: var(--ink); opacity: .5; }
+@keyframes turn-up { 0%, 20% { transform: rotate(-90deg); } 55%, 100% { transform: rotate(0deg); } }
+@media (orientation: landscape) and (max-height: 520px) and (pointer: coarse) { #turn { display: flex; } }
