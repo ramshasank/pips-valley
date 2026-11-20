@@ -15,6 +15,17 @@
     circle: { w: 1, h: 1, say: 'circle', cols: [C.green, C.wood, C.plum], sup: 0.5, sym: Math.PI / 2 },
   };
 
+  /* Painted pictures (img/build): the playroom, wide and tall, and a painted-wood surface that is laid over
+     every block. They are fetched when the app starts; until they have all arrived the room and blocks
+     are drawn from paper as before. */
+  const PIC = {}; let pLeft = 3, pBad = false;
+  B.pics = false;
+  for (const nm of ['room-wide', 'room-tall', 'wood']) { const im = new Image(); im.onload = () => { PIC[nm] = im; pLeft--; B.pics = pLeft <= 0 && !pBad; }; im.onerror = () => { pBad = true; pLeft--; }; im.src = 'img/build/' + nm + '.webp'; }
+  /** Resolves true once the pictures are in, false if they are not coming. */
+  B.ready = () => new Promise((res) => { const t0 = Date.now(); (function wait() { if (pLeft <= 0 || Date.now() - t0 > 8000) res(B.pics); else setTimeout(wait, 80); })(); });
+  /** Where the wall meets the floor in each room picture, as a fraction of its height. */
+  const ROOM_HZ = { 'room-wide': 0.785, 'room-tall': 0.645 };
+
   /** Trace a block's outline, centred on (0,0). */
   B.path = function (g, t, w, h) {
     const x = -w / 2, y = -h / 2;
@@ -32,6 +43,10 @@
     A.paper(g, s, col, { shadow: o.shadow == null ? 0.85 : o.shadow, box: { x: -w / 2, y: -h / 2, w, h }, light: 0.09, grain: 0.3 });
     g.save(); g.beginPath(); B.path(g, t, w, h); g.clip();
     const r = A.rng(t.length * 7 + w);
+    if (B.pics) {      // real painted wood, in the block's own colour
+      const im = PIC.wood, k = (Math.max(w, h * 2) * 1.05) / im.width, r0 = A.rng(t.length * 13 + Math.round(w)), ox = r0() * 0.3, oy = r0() * 0.4;
+      g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.9; g.drawImage(im, im.width * ox, im.height * oy, im.width * 0.6, im.height * 0.6 * (h / Math.max(w, h * 2)) * 2, -w / 2, -h / 2, w, h); g.restore();
+    } else
     for (let i = 0; i < 3; i++) { const y0 = -h / 2 + (i + 0.7) * (h / 3.2); A.line(g, A.alpha(A.shade(col, -0.22), 0.2), h * 0.022, (p) => { p.moveTo(-w / 2, y0); p.bezierCurveTo(-w / 6, y0 - h * 0.08 + r() * h * 0.16, w / 6, y0 - h * 0.08 + r() * h * 0.16, w / 2, y0 + (r() - 0.5) * h * 0.1); }); }
     const e = h * 0.07; g.lineWidth = h * 0.13;
     g.save(); g.translate(-e, -e); g.beginPath(); B.path(g, t, w, h); g.strokeStyle = A.alpha(A.shade(col, -0.3), 0.3); g.stroke(); g.restore();   // shade, lower right
@@ -43,7 +58,7 @@
       for (let i = 0; i < 3; i++) { const a = i * 2.094 + 0.5; g.beginPath(); g.arc(Math.cos(a) * w * 0.18, Math.sin(a) * w * 0.18, w * 0.03, 0, 7); g.fillStyle = A.alpha(A.shade(col, -0.25), 0.6); g.fill(); }
     }
   };
-  B.sprite = (t, col, w, h) => A.sprite('blk|' + t + col + Math.round(w) + 'x' + Math.round(h), [-w / 2, -h / 2, w, h], (g, s) => B.block(g, s, t, col, w, h));
+  B.sprite = (t, col, w, h) => A.sprite('blk|' + (B.pics ? 'P' : '') + t + col + Math.round(w) + 'x' + Math.round(h), [-w / 2, -h / 2, w, h], (g, s) => B.block(g, s, t, col, w, h));
 
   /** A small friendly face. k scales it; o: {open, look, shut} */
   B.face = function (g, x, y, k, o) {
@@ -71,6 +86,13 @@
   /** lay: {W, H, FY (floor line the blocks stand on), L0, R0 (build area), U, land, rx (ruler x), rows, slots, cx} */
   B.room = function (g, s, lay) {
     const { W, H, FY, L0, R0, U, land, rx, rows, cx } = lay, WY = FY - 86;
+    const pic = B.pics && PIC[land ? 'room-wide' : 'room-tall'];
+    if (pic) {         // the painted playroom, with its skirting board on the line where the drawn wall met the floor
+      // the wall is fitted above the skirting line; the picture's floor is then stretched down to the bottom edge
+      const hz = ROOM_HZ[land ? 'room-wide' : 'room-tall'], sc = Math.max(W / pic.width, WY / (pic.height * hz)), dw = pic.width * sc, x0 = W / 2 - dw / 2, wy = pic.height * hz;
+      g.drawImage(pic, 0, 0, pic.width, wy, x0, WY - wy * sc, dw, wy * sc);
+      g.drawImage(pic, 0, wy, pic.width, pic.height - wy, x0, WY - 1, dw, H - WY + 2);
+    } else {
     // wall, with a paler panelled lower half
     g.beginPath(); g.rect(0, 0, W, WY); A.paper(g, s, '#D3DEDF', { shadow: 0, grain: 0.25, light: 0.03, box: { x: 0, y: 0, w: W * 0.3, h: WY } });
     for (let x = 40; x < W; x += 96) A.line(g, 'rgba(255,255,255,.2)', 14, (p) => { p.moveTo(x, 0); p.lineTo(x, WY - 190); });
@@ -124,6 +146,7 @@
     g.beginPath(); g.rect(0, WY, W, H - WY); A.paper(g, s, '#C99C6E', { shadow: 0, grain: 0.3, light: 0.03, box: { x: 0, y: WY, w: W * 0.2, h: H - WY } });
     A.line(g, 'rgba(90,60,40,.28)', 3, (p) => { for (let i = 1; i < 6; i++) { const y = WY + (H - WY) * Math.pow(i / 6, 1.5); p.moveTo(0, y); p.lineTo(W, y); } });
     g.beginPath(); A.rect(g, -10, WY - 12, W + 20, 20, 5, 9, 0.5); A.paper(g, s, '#F7F1E4', { shadow: 0.5, light: 0 });
+    }
     // rug
     const ry0 = FY - 50, ry1 = Math.min(H - 20, FY + (land ? 96 : 60)), rx0 = L0 - 34, rx1 = R0 + 20;
     A.line(g, '#E9DCC6', 4, (p) => { for (let y = ry0 + 12; y < ry1 - 6; y += 13) { p.moveTo(rx0 - 13, y); p.lineTo(rx0 + 4, y); p.moveTo(rx1 - 4, y); p.lineTo(rx1 + 13, y); } });

@@ -103,6 +103,15 @@ MONSTERS = {
 MON = ("a small, round, chubby, very friendly baby monster made of fuzzy {col} felt, all one colour, with {feat}, two big shiny dark eyes with a white sparkle, rosy cheeks, "
        "{mouth}, two short stubby arms held out at its sides and two tiny feet. On its front is a very big, perfectly round, completely plain pale cream tummy patch that covers "
        "most of its lower body. The tummy patch is blank and empty: nothing on it, no letter, no mark, no belly button, and the arms do not cover it. Standing upright, facing the viewer straight on. Cute, never scary, no teeth.")
+ROOM = ("In the same cut paper and gouache style as the reference picture, but an indoor scene with no characters and no animals: a cosy child's playroom seen straight on. "
+        "The wall has soft pale blue-green wallpaper with faint vertical stripes on top and cream wooden panelling below. {window} {shelf} "
+        "The bottom {floor} of the picture is a warm honey-coloured wooden plank floor, completely empty, with a white skirting board where the wall meets the floor in one straight level line. "
+        "No rug, no furniture on the floor, no toys on the floor, no people. Calm and uncluttered.")
+BOOKS["build"] = {
+    "room-wide": dict(size="1536x1024", ref=["bobo/bg-day"], prompt=ROOM.format(window="On the right half of the wall, high up, is a white-framed window with coral curtains, looking out on green hills and a sunny sky.", shelf="On the left half of the wall, high up, is a small wooden shelf with a few colourful books, a little teddy bear and a striped ball.", floor="quarter")),
+    "room-tall": dict(size="1024x1536", ref=["bobo/bg-day"], prompt=ROOM.format(window="In the middle of the wall, in the top third of the picture, is a white-framed window with coral curtains, looking out on green hills and a sunny sky.", shelf="There is no shelf.", floor="half")),
+    "wood": dict(size="1024x1024", ref=["bobo/bg-day"], prompt="A flat, even, seamless texture that fills the whole picture edge to edge: the surface of a hand-painted wooden toy block in a pale cream-white colour, with soft gentle wood grain lines running sideways and a slightly uneven gouache paint feel. Very light and low contrast. No objects, no shapes, no shadows, no border, just the surface."),
+}
 BOOKS["letters"] = {}
 for ch, (col, feat) in MONSTERS.items():
     BOOKS["letters"][ch] = dict(size="1024x1024", alpha=True, max=512, ref=["pip/pip"], prompt=CUT + STYLEREF + MON.format(col=col, feat=feat, mouth="a small closed smile"))

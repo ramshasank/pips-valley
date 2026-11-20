@@ -28,16 +28,17 @@
 
   function start(st, ctx) {
     const W = st.W, H = st.H, land = W >= 1000, L = ctx.level;
-    const U = land ? 96 : 70, FY = land ? 850 : H - 344;
+    const U = land ? 120 : 86, FY = land ? 850 : H - 344;
     const rx = land ? 250 : 46, L0 = land ? 292 : 76, R0 = land ? W - 196 : W - 100, cx = (L0 + R0) / 2;
-    const rows = Math.floor((FY - (land ? 170 : 290)) / U), TS = land ? 0.56 : 0.62;
+    const rows = Math.floor((FY - (land ? 170 : 290)) / U), TS = land ? 0.6 : 0.7;
     const sw = (W - 24) / 3;
     const slots = ORDER.map((t, i) => (land ? { t, x: 108, y: 204 + i * 134 } : { t, x: 12 + ((i % 3) + 0.5) * sw, y: H - 200 + Math.floor(i / 3) * 108 }));
     const lay = { W, H, FY, L0, R0, U, land, rx, rows, cx, slots };
     const store = (K.s.done.build = K.s.done.build || {}); store.made = store.made || {}; store.tallest = store.tallest || 0;
     const goal = Math.min(rows, 7);
 
-    st.add({ z: 0, sprite: A.sprite('buildroom' + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => B.room(g, s, lay)) });
+    if (!B.pics) B.ready().then((ok) => { if (ok && ctx.alive) K.go('build'); });      // the painted room arrived late: start again with it
+    st.add({ z: 0, sprite: A.sprite('buildroom' + (B.pics ? 'P' : '') + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => B.room(g, s, lay)) });
 
     /* ---------------- blocks and their small physics ---------------- */
     const blocks = [];
@@ -234,8 +235,10 @@
       for (const s of pslots) {
         if (s.filled) continue; const on = avail(s), near = on && held && held.t === s.t;
         g.save(); g.translate(s.x, s.y); g.beginPath(); B.path(g, s.t, s.w - 6, s.h - 6);
-        g.fillStyle = `rgba(255,255,255,${near ? 0.75 : on ? 0.4 + Math.sin(st.t * 4) * 0.12 : 0.14})`; g.fill();
-        g.setLineDash([11, 9]); g.strokeStyle = `rgba(46,42,59,${on ? 0.4 : 0.2})`; g.lineWidth = 3; g.stroke(); g.restore();
+        // the place for a block: a pale shape tinted with the colour of the block that goes there
+        g.fillStyle = `rgba(255,255,255,${near ? 0.8 : on ? 0.55 : 0.3})`; g.fill();
+        g.fillStyle = A.alpha(s.c, near ? 0.5 : on ? 0.3 + Math.sin(st.t * 4) * 0.1 : 0.12); g.fill();
+        g.setLineDash([12, 9]); g.strokeStyle = A.alpha(A.shade(s.c, -0.35), on ? 0.75 : 0.35); g.lineWidth = on ? 4 : 3; g.stroke(); g.restore();
       }
       if (held && mode === 'free' && !overStore(held)) { const x = K.clamp(held.x, L0 + held.w / 2, R0 - held.w / 2), y = surfTop(held, x); if (y > bot(held)) { g.beginPath(); g.ellipse(x, y, held.w * 0.46, 7, 0, 0, 7); g.fillStyle = 'rgba(46,40,70,.16)'; g.fill(); } }
       for (const b of blocks) if (b !== held && b.state !== 'fly' && b.state !== 'loose') drawBlock(g, b);
