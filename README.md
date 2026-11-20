@@ -49,5 +49,5 @@ It also writes the whole app as one file to `dist/playhouse.html`.
 
 - Code: [MIT](LICENSE).
 - Drawings, stories and characters: [CC BY 4.0](LICENSE-ART.md). Share and adapt them, with credit.
-- The pictures in the book *Bobo and the Puddle* (`img/bobo/`) were generated with an OpenAI image model and are shared under the same CC BY 4.0 terms.
+- The pictures in the three Story Studio books (`img/`) were generated with an OpenAI image model and are shared under the same CC BY 4.0 terms.
 - Fonts: Andika and Fraunces, under the [SIL Open Font License](fonts/OFL.txt).

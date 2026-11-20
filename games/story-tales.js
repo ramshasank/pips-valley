@@ -32,6 +32,23 @@
   const ROCKET_HIT = { x: -80, y: -300, w: 160, h: 310 };
   tale({
     id: 'star', title: 'Little Lost Star', voice: 'story-star', color: '#4A4A8C', sky: '#2B3466', vars: { friend: ['owl', 'cat', 'panda'] },
+    art: { dir: 'img/star', horizon: 0.53, flat: ['space'], sky: ['star'],
+      names: ['star', 'star-happy', 'star-sad', 'star-wink', 'ministar', 'pip', 'pip-happy', 'pip-oh', 'owl', 'cat', 'panda', 'house', 'rocket', 'rocket-riders', 'cloud', 'bg-night', 'bg-space', 'bunny=bobo/bunny'],
+      h: { star: 138, pip: 168, owl: 170, cat: 190, panda: 190, bunny: 200 },
+      props: { house: [340, 0, 10], cloud: [230, 0, 70] },
+      custom: {
+        rocket(g, n, t, pics) {
+          const fire = n.fire || 0, im = n.riders ? pics['rocket-riders'] : pics.rocket, h = 290, w = h * im.width / im.height;
+          if (fire > 0) for (const [fw, l, col] of [[30, 130, '#F08A35'], [18, 90, '#F6D365']]) { const k = fire * (0.8 + 0.2 * Math.sin(t * 40 + fw)); g.beginPath(); g.moveTo(-fw, -24); g.quadraticCurveTo(-fw * 0.8, l * k * 0.5, 0, l * k); g.quadraticCurveTo(fw * 0.8, l * k * 0.5, fw, -24); g.closePath(); g.fillStyle = col; g.fill(); }
+          g.drawImage(im, -w / 2, -h - 6, w, h);
+        },
+        ministar(g, n, t, pics) {
+          const gl = n.glow == null ? 1 : n.glow, tw = 1 + Math.sin(t * 3 + (n.ph || 0)) * 0.06 * gl, im = pics.ministar, w = 88, h = w * im.height / im.width;
+          g.save(); g.translate(0, -40); g.scale(tw, tw);
+          const gr = g.createRadialGradient(0, 0, 10, 0, 0, 80); gr.addColorStop(0, `rgba(255,236,160,${0.5 * gl})`); gr.addColorStop(1, 'rgba(255,236,160,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, 0, 80, 0, 7); g.fill();
+          g.globalAlpha *= 0.4 + 0.6 * gl; g.drawImage(im, -w / 2, -h / 2, w, h); g.restore();
+        } },
+      actors: (kind) => kind },
     extra: ['Bump!', 'Whoosh!', 'She said, "Thank you, Pip!"', 'three', 'two', 'one'],
     cover(g, s) { for (const [x, y, r] of [[-60, -150, 3], [50, -120, 2.5], [-30, -90, 2], [70, -160, 3], [10, -165, 2]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = '#FFF6DA'; g.fill(); } g.translate(0, 0); g.scale(0.95, 0.95); St.star(g, s, { glow: 1 }, 0); },
     pages: [
@@ -142,7 +159,7 @@
   function hill(P, dir) {
     const xa = P.X(dir > 0 ? 0.3 : 0.2), xb = P.X(dir > 0 ? 0.9 : 0.82), hh = Math.min(P.SH * 0.4, (xb - xa) * 0.6), base = P.G + 40;
     const y = (x) => base - hh * (dir > 0 ? smooth((x - xa) / (xb - xa)) : 1 - smooth((x - xa) / (xb - xa)));
-    P.paint('hill' + dir, 4, (g, s) => { St.bigHill(g, s, (x) => y(x) + 6, -20, P.W + 20, P.H, '#86B585'); St.track(g, s, y, -20, P.W + 20); });
+    P.paint('hill' + dir, 4, (g, s) => { St.bigHill(g, s, (x) => y(x) + 6, -20, P.W + 20, P.H, P.hillCol); St.track(g, s, y, -20, P.W + 20); });
     const slope = (x) => { const d = 50 * P.k; return Math.atan2(y(x + d) - y(x - d), d * 2); };
     const put = (t) => {
       t.y = y(t.x); t.rot = slope(t.x); if (t.px != null) t.roll += (t.x - t.px) / Math.abs(t.sx); t.px = t.x;
@@ -156,8 +173,36 @@
   }
   const steam = (P, toot, n) => { const p = P.at(toot, 78, -190); P.puff(p.x, p.y, 'steam', n || 2); };
   const CARGO = ['apples', 'cakes', 'flowers'];
+  /** One of the things Toot carries, centred on (x, y): the generated picture if the book has it, else the drawn one. */
+  const item = (g, s, pics, cargo, x, y, k) => { const im = pics && pics[cargo]; if (!im) return St.item[cargo](g, s, x, y, k); const h = 50 * k, w = h * im.width / im.height; g.drawImage(im, x - w / 2, y - h / 2 - 4 * k, w, h); };
+  /* Toot and his wagon from pictures: the bodies are painted, the wheels are one picture that really turns. */
+  const wheelPic = (g, pics, x, r, roll) => { g.save(); g.translate(x, -r); g.rotate(roll / r); g.drawImage(pics.wheel, -r, -r, r * 2, r * 2); g.restore(); };
+  const wagonPic = (g, n, pics, dx) => {
+    const roll = n.roll || 0, im = pics.wagon, w = 176, h = w * im.height / im.width;
+    g.save(); g.translate(dx || 0, 0);
+    A.line(g, '#3E3446', 6, (q) => { q.moveTo(-126, -40); q.lineTo(-112, -40); });
+    if (n.cargo) for (let i = 0; i < 3; i++) item(g, 1, pics, n.cargo, -254 + i * 44, -16 - h - (i === 1 ? 12 : 0), 1.05);
+    g.drawImage(im, -212 - w / 2, -30 - h, w, h);
+    wheelPic(g, pics, -256, 22, roll); wheelPic(g, pics, -168, 22, roll);
+    g.restore();
+  };
+  const tootPic = (g, n, t, pics) => {
+    const sq = n.sq || 0, m = n.mouth, v = n.sleep ? 'toot-sleep' : m === 'oh' ? 'toot-oh' : m === 'open' ? 'toot-happy' : 'toot', im = pics[v] || pics.toot;
+    g.save(); g.scale(1 - sq * 0.3, 1 + sq);
+    if (n.wagon !== false) wagonPic(g, n, pics, 0);
+    const u = 280 / im.width;
+    g.drawImage(im, -120, -22 - im.height * u, im.width * u, im.height * u);
+    wheelPic(g, pics, -70, 30, n.roll || 0); wheelPic(g, pics, 14, 25, n.roll || 0); wheelPic(g, pics, 88, 25, n.roll || 0);
+    g.restore();
+  };
   tale({
     id: 'toot', title: 'Toot the Little Train', voice: 'story-toot', color: '#C9553F', sky: '#CFE6E8', vars: { cargo: CARGO },
+    art: { dir: 'img/toot', horizon: 0.53, hill: '#A6CF2B',
+      names: ['toot', 'toot-happy', 'toot-oh', 'toot-sleep', 'wheel', 'wagon', 'apples', 'cakes', 'flowers', 'shed', 'town', 'bg-eve', 'bg-day=bobo/bg-day', 'cloud=star/cloud', 'bunny=bobo/bunny', 'bear=bobo/bobo', 'bear-happy=bobo/bobo-happy', 'frog=bobo/frog', 'cat=star/cat', 'owl=star/owl'],
+      h: { bunny: 200, bear: 196, 'bear-happy': 205, frog: 140, cat: 190, owl: 170 },
+      props: { shed: [450, 0, 10], town: [700, 0, 10], cloud: [230, 0, 70] },
+      custom: { toot: tootPic, wagon: (g, n, t, pics) => wagonPic(g, n, pics, 212) },
+      actors: (kind) => kind },
     extra: ['Choo choo!', 'Oh no!', 'He rolled back down.', 'Push, push, push!', 'one', 'two', 'three'],
     cover(g, s) { g.beginPath(); g.ellipse(0, 70, 150, 60, 0, 0, 7); g.fillStyle = '#86B585'; g.fill(); g.translate(26, 26); g.scale(0.42, 0.42); St.toot(g, s, { cargo: 'apples' }); },
     pages: [
@@ -209,7 +254,7 @@
           P.bg('day', { sun: 0 });
           const top = P.G - (P.port ? 10 : 40), y = (x) => top + Math.pow((x - P.X(0.3)) / P.W, 2) * (P.port ? 900 : 560);
           const town = P.prop('town', P.X(0.8), P.G + 60, { scale: P.port ? 0.42 : 0.5, z: 2, alpha: 0.25 });
-          P.paint('top', 4, (g, s) => { St.bigHill(g, s, (x) => y(x) + 6, -20, P.W + 20, P.H, '#86B585'); St.track(g, s, y, -20, P.X(0.62)); });
+          P.paint('top', 4, (g, s) => { St.bigHill(g, s, (x) => y(x) + 6, -20, P.W + 20, P.H, P.hillCol); St.track(g, s, y, -20, P.X(0.62)); });
           const toot = P.actor('toot', P.X(0.36), 0, { scale: 0.72, cargo: P.ch.cargo, gaze: 1 }); toot.y = y(toot.x);
           toy(P, toot, 'choo', 'Toot');
           const cl = [[0.66, 0.5], [0.9, 0.62], [0.78, 0.36]].map(([fx, fy], i) => P.prop('cloud', P.X(fx), P.SH * fy, { z: 20, scale: 1.15, awake: i === 0, hit: null, x0: P.X(fx), f: 0 }));
@@ -239,7 +284,7 @@
           const pals = ['bear', 'cat', 'frog'].map((id, i) => P.actor(id, P.X((P.port ? 0.2 : 0.6) + i * (P.port ? 0.3 : 0.14)), P.G + (P.port ? 150 : 100), { scale: 0.85, z: 14, label: id, arms: 0.5 }));
           await P.taps(pals, { count: 'up', step: (c, n) => {
             const from = P.at(toot, -212, -110);
-            const it = P.node.add(new K.engine.Node({ x: from.x, y: from.y, z: 30, sx: P.k * 1.2, sy: P.k * 1.2, draw: (g, s) => St.item[cargo](g, s, 0, 0, 1) }));
+            const it = P.node.add(new K.engine.Node({ x: from.x, y: from.y, z: 30, sx: P.k * 1.2, sy: P.k * 1.2, draw: (g, s) => item(g, s, P.pics, cargo, 0, 0, 1) }));
             it.to({ x: n.x, y: n.y - 60 * n.sy }, { dur: 0.5, ease: 'inOut' }).then(() => { K.sfx.pop(); n.arms = 0; P.cheer(n); P.burst({ x: n.x, y: n.y - 80 * n.sy }, { n: 8 }); });
           } });
           await P.wait(700); P.snd.choo(); steam(P, toot, 4); toot.mouth = 'open'; P.hop(toot, 30); await P.wait(500);
@@ -253,7 +298,7 @@
           const toot = P.actor('toot', P.X(0.5) + 70 * P.k, P.G + 40, { label: 'Toot', scale: 0.92 });
           // the thing he carried, kept as a little prize on his wagon
           const prize = P.ch.cargo || 'apples'; const pp = P.at(toot, -212, -124);
-          P.node.add(new K.engine.Node({ x: pp.x, y: pp.y, z: 11, sx: P.k * 1.3, sy: P.k * 1.3, draw: (g, s) => St.item[prize](g, s, 0, 0, 1) }));
+          P.node.add(new K.engine.Node({ x: pp.x, y: pp.y, z: 11, sx: P.k * 1.3, sy: P.k * 1.3, draw: (g, s) => item(g, s, P.pics, prize, 0, 0, 1) }));
           await P.taps(toot, { n: 1 });
           P.snd.yawn(); toot.mouth = 'oh'; await P.wait(700); toot.sleep = true; toot.mouth = 'smile'; P.snd.snore();
           let zt = 0; toot.tick = (dt) => { zt -= dt; if (zt < 0) { zt = 1.2; const p = P.at(toot, 120, -150); P.puff(p.x, p.y, 'z', 1); } };
@@ -271,10 +316,10 @@
   const puddleAt = (P) => P.prop('puddle', P.X(P.port ? 0.6 : 0.62), P.G + (P.port ? 110 : 84), { z: 6, scale: P.port ? 0.95 : 1.1 });
   tale({
     id: 'bobo', title: 'Bobo and the Puddle', voice: 'story-bobo', color: '#2F8F8A', sky: '#AEBDC8', vars: { pal: PALS },
-    // generated pictures (tools/gen_images.py). h: height in scene units; like: same scale as; props: [width, centre x, bottom y]
+    // generated pictures (tools/gen_images.py). h: height in scene units (a name like bobo-happy is drawn at bobo's scale); props: [width, centre x, bottom y]
     art: { dir: 'img/bobo', horizon: 0.53,
       names: ['bobo', 'bobo-happy', 'bobo-sleep', 'bobo-mud', 'mama', 'frog', 'bunny', 'fox', 'bg-rain', 'bg-day', 'den', 'cloud', 'rainbow', 'puddle'],
-      h: { bobo: 196, mama: 200, frog: 140, bunny: 200, fox: 185 }, like: { 'bobo-happy': 'bobo', 'bobo-sleep': 'bobo', 'bobo-mud': 'bobo' },
+      h: { bobo: 196, 'bobo-happy': 205, 'bobo-sleep': 200, 'bobo-mud': 206, mama: 200, frog: 140, bunny: 200, fox: 185 },
       props: { den: [330, 0, 12], cloud: [230, 0, 70], rainbow: [700, 0, 6], puddle: [430, 0, 54] },
       actors: (kind, o) => (kind === 'bear' ? (o.scarf ? 'mama' : 'bobo') : kind) },
     extra: ['Drip, drop, drip, drop.', 'Dip!', 'Splash, splash, splash!'],

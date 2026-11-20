@@ -48,7 +48,7 @@
     function showShelf(justRead) {
       view = 'shelf'; tale = null; page = null;
       // fetch any generated pictures while the child looks at the shelf; a book only uses them if every one arrived
-      for (const t of K.tales) if (t.art && !t._pics) { const m = (t._pics = {}); let left = t.art.names.length; for (const nm of t.art.names) { const im = new Image(); im.onload = () => { m[nm] = im; if (--left === 0) t.pics = m; }; im.src = t.art.dir + '/' + nm + '.webp'; } }
+      for (const t of K.tales) if (t.art && !t._pics) { const m = (t._pics = {}); let left = t.art.names.length; for (const e of t.art.names) { const [nm, rel] = e.split('='); const im = new Image(); im.onload = () => { m[nm] = im; if (--left === 0) t.pics = m; }; im.src = rel ? 'img/' + rel + '.webp' : t.art.dir + '/' + nm + '.webp'; } }
       if (book) { book.remove(); book = null; }
       shelf = st.add({ z: 1 });
       shelf.add(new E.Node({ z: 0, sprite: A.sprite('stnook' + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.nook(g, s, W, H, shelfY, shelfW)) }));
@@ -165,33 +165,46 @@
 
       /* ---- generated picture-book art (tale.art): painted backgrounds and cut-out characters stand in for
          the drawn ones. Positions, touch areas and every motion stay exactly as they are. ---- */
-      const art = pics && tale.art, upp = (nm) => { const a = art.h[nm]; return a ? a / pics[nm].height : upp(art.like[nm]); };
+      const art = pics && tale.art, upp = (nm) => (art.h[nm] || art.h[nm.replace(/-[a-z]+$/, '')]) / pics[nm].height;   // a face without its own height is as tall as the plain one
+      P.pics = art ? pics : null; P.hillCol = (art && art.hill) || '#86B585';
       const pic = (g, nm, w, h, x, y) => g.drawImage(pics[nm], x, y, w, h);
-      const picBg = (kind) => {
-        const im = pics['bg-' + kind], hz = art.horizon, sc = Math.max(W / im.width, G / (im.height * hz), (H - G) / (im.height * (1 - hz)));
-        const n = node.add(new E.Node({ z: 0, kind })); n.draw = (g) => g.drawImage(im, W / 2 - im.width * sc / 2, G - im.height * hz * sc, im.width * sc, im.height * sc); return n;
+      const picBg = (kind, o) => {
+        o = o || {}; const im = pics['bg-' + kind], hz = art.horizon, flat = (art.flat || []).includes(kind);
+        const sc = flat ? Math.max(W / im.width, H / im.height) : Math.max(W / im.width, G / (im.height * hz), (H - G) / (im.height * (1 - hz)));
+        const orb = o.moon ? ['moon', W * (o.moon === 2 ? 0.84 : W < 1000 ? 0.36 : 0.21), W < 1000 ? 250 : 200, W < 1000 ? 0.8 : 1.15] : o.sun ? ['sun', W * 0.86, W < 1000 ? 260 : 200, W < 1000 ? 0.75 : 0.95] : null;
+        const osp = orb && withMood(() => A.sprite('storb' + orb[0], [-170, -170, 340, 340], (g, s) => St.prop[orb[0]](g, s, {}))  /* room for the glow */);
+        const n = node.add(new E.Node({ z: 0, kind }));
+        n.draw = (g) => {
+          g.drawImage(im, W / 2 - im.width * sc / 2, flat ? H / 2 - im.height * sc / 2 : G - im.height * hz * sc, im.width * sc, im.height * sc);
+          if (orb) g.drawImage(osp.canvas, orb[1] - osp.ox * orb[3], orb[2] - osp.oy * orb[3], osp.w * orb[3], osp.h * orb[3]);
+        };
+        return n;
       };
       const picProp = (n, name) => {
-        const [w, cx, by] = art.props[name], im = pics[name], h = w * im.height / im.width;
+        const [w, cx, by] = art.props[name] || [0, 0, 0], im = pics[name], h = im ? w * im.height / im.width : 0;
         n.sprite = null;
+        if (art.custom && art.custom[name]) { n.draw = (g) => art.custom[name](g, n, st.t, pics); return; }
         n.draw = (g) => {
           const b = n.puff ? 1 + Math.sin(st.t * 18) * 0.03 : 1; g.save(); g.scale(b, 2 - b); pic(g, name, w, h, cx - w / 2, by - h); g.restore();
           if (name === 'puddle') { const age = st.t - (n.rip == null ? -9 : n.rip); if (age < 1.6) for (let i = 0; i < 3; i++) { const q = age / 1.6 - i * 0.18; if (q <= 0 || q > 1) continue; g.beginPath(); g.ellipse(n.ripX || 0, 0, 40 + q * 150, 9 + q * 34, 0, 0, 7); g.strokeStyle = `rgba(255,255,255,${0.7 * (1 - q)})`; g.lineWidth = 4; g.stroke(); } }
         };
       };
       const picActor = (n, base) => {
+        if (art.custom && art.custom[base]) { n.draw = (g) => { if (n.float) g.translate(0, Math.sin(st.t * 2 + n.id) * 8); art.custom[base](g, n, st.t, pics); }; return; }
+        const sky = (art.sky || []).includes(base);     // things that float: no ground shadow, a soft glow and a gentle sway
         n.draw = (g) => {
           if (n.float) g.translate(0, Math.sin(st.t * 2 + n.id) * 8);
-          const sq = n.sq || 0; A.groundShadow(g, 50 * (1 + Math.max(0, -sq) * 0.6), 0);
+          const sq = n.sq || 0; if (!sky) A.groundShadow(g, 50 * (1 + Math.max(0, -sq) * 0.6), 0);
           const br = n.sleep ? Math.sin(st.t * 1.6) * 0.02 : Math.sin(st.t * 2.4 + n.id) * 0.008;
           g.scale(1 - sq * 0.5, 1 + sq + br); g.rotate((n.tilt || 0) * 0.5);
-          const one = (nm, a) => { if (!pics[nm]) nm = base; const im = pics[nm], u = upp(nm), w = im.width * u, h = im.height * u; if (a < 1) { g.save(); g.globalAlpha *= a; } pic(g, nm, w, h, -w / 2, 6 - h); if (a < 1) g.restore(); };
-          const mud = n.mud || 0, face = n.sleep ? base + '-sleep' : n.mouth === 'open' || (n.arms || 0) > 0.4 ? base + '-happy' : base;
-          if (mud < 0.98 || !pics[base + '-mud']) one(face, 1);
+          if (sky) { const gl = n.glow == null ? 0.6 : n.glow, cy = -art.h[base] / 2; if (gl > 0) { const gr = g.createRadialGradient(0, cy, 20, 0, cy, 125); gr.addColorStop(0, `rgba(255,236,160,${Math.min(1, 0.55 * gl)})`); gr.addColorStop(1, 'rgba(255,236,160,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, cy, 125, 0, 7); g.fill(); } g.translate(0, cy); g.rotate(Math.sin(st.t * 1.6) * 0.05); g.translate(0, -cy); }
+          const one = (nm, a) => { if (!pics[nm]) nm = base; const im = pics[nm], u = upp(nm), w = im.width * u, h = im.height * u; if (a < 1) { g.save(); g.globalAlpha *= a; } pic(g, nm, w, h, -w / 2, (sky ? 0 : 6) - h); if (a < 1) g.restore(); };
+          const mud = n.mud || 0, m = n.mouth, v = n.sleep ? 'sleep' : n.wink ? 'wink' : m === 'sad' ? 'sad' : m === 'oh' && pics[base + '-oh'] ? 'oh' : m === 'open' || m === 'oh' || (n.arms || 0) > 0.4 || (n.wave || 0) > 0.3 ? 'happy' : '';
+          if (mud < 0.98 || !pics[base + '-mud']) one(v ? base + '-' + v : base, 1);
           if (mud > 0.02 && pics[base + '-mud']) one(base + '-mud', Math.min(1, mud));
         };
       };
-      P.bg = (kind, o) => { if (art && pics['bg-' + kind]) { P.mood = St.mood(kind); return picBg(kind); } P.mood = St.mood(kind); return node.add(new E.Node({ z: 0, kind, sprite: A.sprite('stbg' + kind + JSON.stringify(o || {}) + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.bg(g, s, kind, W, H, G, o)) })); };
+      P.bg = (kind, o) => { if (art && pics['bg-' + kind]) { P.mood = St.mood(kind); return picBg(kind, o); } P.mood = St.mood(kind); return node.add(new E.Node({ z: 0, kind, sprite: A.sprite('stbg' + kind + JSON.stringify(o || {}) + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.bg(g, s, kind, W, H, G, o)) })); };
       /** Custom static art over the whole scene. */
       P.paint = (key, z, fn) => node.add(new E.Node({ z, sprite: withMood(() => A.sprite('stpt' + tale.id + key + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], fn)) }));
       P.prop = (name, x, y, o) => {
@@ -200,7 +213,7 @@
         const box = St.box[name];
         if (box) { n.sprite = withMood(() => A.sprite('stp' + name + (o.cargo || '') + (o.lit ? 'L' : ''), box, (g, s) => St.prop[name](g, s, o, 0))); n.hit = n.hit || { x: box[0], y: box[1], w: box[2], h: box[3] }; }
         else { n.draw = (g, s) => St.prop[name](g, s, n, st.t); n.hit = n.hit || St.hit[name]; }
-        if (art && art.props[name] && pics[name]) picProp(n, name);
+        if (art && ((art.props[name] && pics[name]) || (art.custom && art.custom[name]))) picProp(n, name);
         tick(n); return n;
       };
       P.actor = (kind, x, y, o) => {
@@ -361,7 +374,7 @@
         };
         opts.forEach((opt, i) => {
           const c = node.add(new E.Node({ x: W / 2 - tot / 2 + cs / 2 + i * (cs + gap), y: y - 50, alpha: 0, z: 60, hit: { x: -cs / 2, y: -cs / 2, w: cs, h: cs }, pad: 10, label: opt.label, opt, ph: i * 1.3 }));
-          c.draw = (g, s) => { g.save(); g.translate(0, Math.sin(st.t * 2 + c.ph) * 6); g.rotate(Math.sin(st.t * 1.3 + c.ph) * 0.02); g.beginPath(); A.rect(g, -cs / 2, -cs / 2, cs, cs, 28, i + 3, 1.2); A.paper(g, s, '#FBF6EC', { shadow: 1.2, depth: 1.4, box: { x: -cs / 2, y: -cs / 2, w: cs, h: cs } }); g.scale(cs / 210, cs / 210); opt.draw(g, s, st.t); g.restore(); };
+          c.draw = (g, s) => { g.save(); g.translate(0, Math.sin(st.t * 2 + c.ph) * 6); g.rotate(Math.sin(st.t * 1.3 + c.ph) * 0.02); g.beginPath(); A.rect(g, -cs / 2, -cs / 2, cs, cs, 28, i + 3, 1.2); A.paper(g, s, '#FBF6EC', { shadow: 1.2, depth: 1.4, box: { x: -cs / 2, y: -cs / 2, w: cs, h: cs } }); g.scale(cs / 210, cs / 210); const im = art && pics[opt.id]; if (im) { const q = Math.min(150 / im.width, 160 / im.height); g.drawImage(im, -im.width * q / 2, -im.height * q / 2, im.width * q, im.height * q); } else opt.draw(g, s, st.t); g.restore(); };
           c.to({ alpha: 1, y }, { dur: 0.4, ease: 'back', delay: 0.12 * i + 0.25 }); c.onTap = () => pick(c); cards.push(c);
         });
         P.hint = { kind: 'tap', n: cards[0], all: cards, t0: st.t + 0.9 }; P.cards = cards;
