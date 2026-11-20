@@ -86,6 +86,29 @@ BOOKS = {
     },
 }
 
+# ---- Letter Monsters: one friendly monster per letter. The letter itself is NOT in the picture: the app
+# prints it on the plain tummy patch in the reading font, so it is always crisp and easy to read.
+# Vowels are warm colours, consonants cool ones.
+MONSTERS = {
+    "a": ("tomato red", "a fluffy tuft of hair on top and two small round ears"), "b": ("sky blue", "two floppy ears that hang down"), "c": ("teal", "one curly antenna with a ball on the end"),
+    "d": ("leaf green", "one big floppy tuft of hair that falls to one side"), "e": ("bright orange", "two pointy ears"), "f": ("violet purple", "two antennae with little balls on the ends"),
+    "g": ("turquoise", "three short hair sprouts on top"), "h": ("royal blue", "two tiny bat wings at the sides of the head"), "i": ("rose pink", "one small horn in the middle of the head"),
+    "j": ("mint green", "long bunny-like ears standing up"), "k": ("lavender", "a row of three soft rounded spikes on top"), "l": ("deep blue", "two small curly horns"),
+    "m": ("lime green", "round bear-like ears"), "n": ("plum purple", "a swirl of hair like soft ice cream on top"), "o": ("golden yellow", "two little rounded ears and a tiny tuft"),
+    "p": ("aqua blue", "two short stubby antennae"), "q": ("forest green", "a leafy sprout on top"), "r": ("indigo", "pointy cat-like ears"),
+    "s": ("sea green", "one floppy ear and one upright ear"), "t": ("periwinkle blue", "two tiny horns and a tuft between them"), "u": ("coral peach", "a soft mohawk of short fur"),
+    "v": ("grape purple", "two long droopy antennae"), "w": ("cyan blue", "four tiny rounded bumps on top"), "x": ("olive green", "two crossed little hair sprouts"),
+    "y": ("blue-grey", "big round mouse-like ears"), "z": ("jade green", "a zigzag tuft of hair on top"),
+}
+MON = ("a small, round, chubby, very friendly baby monster made of fuzzy {col} felt, all one colour, with {feat}, two big shiny dark eyes with a white sparkle, rosy cheeks, "
+       "{mouth}, two short stubby arms held out at its sides and two tiny feet. On its front is a very big, perfectly round, completely plain pale cream tummy patch that covers "
+       "most of its lower body. The tummy patch is blank and empty: nothing on it, no letter, no mark, no belly button, and the arms do not cover it. Standing upright, facing the viewer straight on. Cute, never scary, no teeth.")
+BOOKS["letters"] = {}
+for ch, (col, feat) in MONSTERS.items():
+    BOOKS["letters"][ch] = dict(size="1024x1024", alpha=True, max=512, ref=["pip/pip"], prompt=CUT + STYLEREF + MON.format(col=col, feat=feat, mouth="a small closed smile"))
+for ch in MONSTERS:
+    BOOKS["letters"][ch + "-open"] = dict(size="1024x1024", alpha=True, max=512, ref=[ch], prompt=CUT + SAME + "Same pose, same size, same blank cream tummy patch. The only change: its mouth is now wide open in a happy round shape, as if it is singing a sound, showing a little pink tongue.")
+
 
 def call(spec, out_dir, quality):
     body = dict(model=MODEL, prompt=spec["prompt"] + " " + STYLE, size=spec["size"], quality=quality, n="1")
@@ -129,6 +152,8 @@ def main():
         if BOOKS[book][name].get("alpha"):
             img = img.convert("RGBA"); box = img.getchannel("A").point(lambda a: 255 if a > 8 else 0).getbbox()
             if box: img = img.crop(box)
+            m = BOOKS[book][name].get("max")
+            if m and max(img.size) > m: img.thumbnail((m, m), Image.LANCZOS)
         else: img = img.convert("RGB")
         img.save(path, "WEBP", quality=88, method=6)
         print(f"made {name} {img.size} mode={img.mode} ~${cost:.3f} usage={json.dumps(usage)}", flush=True)

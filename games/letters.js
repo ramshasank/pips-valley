@@ -61,7 +61,7 @@
 
     /* ---------------- a letter monster ---------------- */
     function monster(ch, x, y, F) {
-      const hgt = Lt.height(ch, F), m = Lt.metrics(ch), hw = Math.max(58, ((m.r - m.l) * F) / 2 + 14);
+      const hgt = Lt.height(ch, F), m = Lt.metrics(ch), hw = Lt.pics ? hgt * 0.48 : Math.max(58, ((m.r - m.l) * F) / 2 + 14);
       const n = st.add({ z: 30, x, y, ch, F, hgt, label: 'letter ' + ch, hit: { x: -hw, y: -hgt - 6, w: hw * 2, h: hgt + 22 }, pad: 10, pressable: false,
         vy: 0, squash: 0, sqv: 0, blinkT: 1 + Math.random() * 3, blink: 0, talkT: 0, shakeT: 0, happy: false, held: false, floor: y, home: { x, y }, slot: -1, j: null });
       n.draw = (g) => {
@@ -69,6 +69,14 @@
         if (ptr) { const dx = ptr.x - n.x, dy = ptr.y - (n.y - hgt * 0.6), d = Math.hypot(dx, dy) || 1, k = Math.min(1, d / 160); lx = (dx / d) * k; ly = (dy / d) * k; }
         Lt.monster(g, st.res, ch, F, { air: n.leaving ? 0 : Math.min(600, n.floor - n.y), blink: n.blink, lookX: lx, lookY: ly, squash: n.squash + (hintOn && hintMon === n ? Math.sin(st.t * 8) * 0.035 : 0), happy: n.happy || n.held,
           open: n.talkT > 0 ? 0.55 + 0.45 * Math.sin(st.t * 19) : n.held ? 0.5 : 0, shake: n.shakeT > 0 ? Math.sin(n.shakeT * 26) * 0.16 * Math.min(1, n.shakeT * 3) : n.held ? Math.sin(st.t * 7) * 0.07 : 0 });
+        // while a picture monster says its name, a card above it shows the capital and the small letter
+        if (Lt.pics && mode === 'meet' && n.talkT > 0) {
+          const k = F / 230, cw = 190 * k, chh = 116 * k, cy = -hgt - 26 * k - chh / 2;
+          g.save(); g.translate(0, cy); g.rotate(Math.sin(st.t * 3) * 0.02);
+          g.beginPath(); A.rect(g, -cw / 2, -chh / 2, cw, chh, 22 * k, 3, 1); A.paper(g, st.res, '#FBF6EC', { shadow: 1, box: { x: -cw / 2, y: -chh / 2, w: cw, h: chh } });
+          g.font = `700 ${78 * k}px ${A.FONT_BODY}`; g.textAlign = 'center'; g.textBaseline = 'alphabetic'; g.fillStyle = A.C.ink; g.fillText(ch.toUpperCase() + ' ' + ch, 0, 26 * k);
+          g.restore();
+        }
         if (n.hat) { g.save(); g.translate(0, -hgt + 16 - n.squash * hgt); g.scale(0.62, 0.62); n.hat(g, st.res, st.t, true); g.restore(); }
       };
       n.update = (dt) => {
@@ -119,14 +127,14 @@
     }
 
     /* ---------------- meet the letters ---------------- */
-    const perPage = port ? 4 : 5, pages = Math.ceil(26 / perPage), FM = port ? 158 : 230;
+    const perPage = port ? 4 : 5, pages = Math.ceil(26 / perPage), fm = () => (Lt.pics ? (port ? 186 : 272) : port ? 158 : 230);   // picture monsters stand bigger
     function pageLetters(pg) { const out = []; for (let i = 0; i < perPage; i++) out.push(ABC[(pg * perPage + i) % 26]); return out; }
     function showPage(dir) {
       leave(mons.slice(), dir || 1);
       const ls = pageLetters(store.page || 0), x0 = port ? 82 : 200, x1 = W - (port ? 82 : 240);
       ls.forEach((ch, i) => {
         const x = x0 + ((x1 - x0) * i) / (ls.length - 1), y = G + (i % 2 ? 26 : 0);
-        const n = monster(ch, -160 - i * 30, y, FM); n.floor = y; n.home = { x, y };
+        const n = monster(ch, -160 - i * 30, y, fm()); n.floor = y; n.home = { x, y };
         n.jump(x, y, { h: 190, dur: 0.6, delay: 0.25 + i * 0.12 });
       });
       fresh(1);
@@ -156,7 +164,7 @@
       for (let i = 0; i < 3; i++) if (!slots[i] && (L === 1 || i === next)) { g.save(); g.translate((i - 1) * slotW, sink(word.w[i])); Lt.monster(g, st.res, word.w[i], FB, { ghost: i === next ? 0.5 + 0.12 * Math.sin(st.t * 4) : 0.26, color: '#FFFFFF' }); g.restore(); }
     };
     /** Letters with tails hang them over the edge, so the word sits on one line. */
-    const sink = (ch) => { const d = Lt.metrics(ch).bot * FB; return d > FB * 0.06 ? d : 0; };
+    const sink = (ch) => { if (Lt.pics) return 0; const d = Lt.metrics(ch).bot * FB; return d > FB * 0.06 ? d : 0; };
     const TINTS = ['#DCEBE6', '#F3E3C8', '#E3E0F0', '#F5DCD6', '#DDE9C9'];
     function newPic() {
       if (pic) pic.remove();
@@ -363,7 +371,7 @@
       if (t.stage === 0) { t.fadeTo = 0; await ctx.wait(260); if (my !== gen) return; setGlyph(1); return; }
       // both painted: the small letter climbs off the paper as its monster
       busy = true; store.traced[t.ch] = 1; K.save(); traced++;
-      const low = Lt.metrics(t.ch).bot > 0.06 ? 1 : 0.72;
+      const low = Lt.pics ? 0.9 : Lt.metrics(t.ch).bot > 0.06 ? 1 : 0.72;
       const n = monster(t.ch, cx, board.y + tpad + (0.52 + (low - 0.52) * 1.25) * tsc, FT);
       n.floor = G; n.home = { x: port ? cx : Math.max(140, tbx - 160), y: G }; n.happy = true; n.lift(40);
       t.fadeTo = 0; t.mini = null; K.sfx.pop(); n.squash = -0.2;
@@ -444,12 +452,12 @@
     };
 
     K._letters = { get mode() { return mode; }, get word() { return word && word.w; }, get busy() { return busy; }, get slots() { return slots.map((n) => (n ? n.ch : '')); },
-      get mons() { return mons.map((n) => ({ ch: n.ch, x: n.x, y: n.y, h: n.hgt, slot: n.slot })); }, slotX, slotY, G, store, setMode,
+      get mons() { return mons.map((n) => ({ ch: n.ch, x: n.x, y: n.y, h: n.hgt, slot: n.slot })); }, slotX, slotY, G, W, H, store, setMode,
       /** For tests: the letter being traced and its remaining strokes as screen points. */
       get trace() { return tr && { ch: tr.ch, stage: tr.stage, si: tr.si, ci: tr.ci, lock: tr.lock, strokes: tr.pts.map((p) => p.map((q) => [board.x + q[0], board.y + q[1]])) }; },
       get hint() { return hintOn; } };
     ctx.onExit(() => { K._letters = null; });
-    A.fontsReady().then(() => { if (ctx.alive) setMode(['build', 'trace'].includes(store.mode) ? store.mode : 'meet'); });
+    Promise.all([A.fontsReady(), Lt.ready()]).then(() => { if (ctx.alive) setMode(['build', 'trace'].includes(store.mode) ? store.mode : 'meet'); });
   }
 
   K.game({ id: 'letters', title: 'Letter Monsters', voice: 'abc', group: 'learn', order: 1, start, lines, resize: () => K.go('letters') });
