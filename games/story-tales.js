@@ -271,6 +271,12 @@
   const puddleAt = (P) => P.prop('puddle', P.X(P.port ? 0.6 : 0.62), P.G + (P.port ? 110 : 84), { z: 6, scale: P.port ? 0.95 : 1.1 });
   tale({
     id: 'bobo', title: 'Bobo and the Puddle', voice: 'story-bobo', color: '#2F8F8A', sky: '#AEBDC8', vars: { pal: PALS },
+    // generated pictures (tools/gen_images.py). h: height in scene units; like: same scale as; props: [width, centre x, bottom y]
+    art: { dir: 'img/bobo', horizon: 0.53,
+      names: ['bobo', 'bobo-happy', 'bobo-sleep', 'bobo-mud', 'mama', 'frog', 'bunny', 'fox', 'bg-rain', 'bg-day', 'den', 'cloud', 'rainbow', 'puddle'],
+      h: { bobo: 196, mama: 200, frog: 140, bunny: 200, fox: 185 }, like: { 'bobo-happy': 'bobo', 'bobo-sleep': 'bobo', 'bobo-mud': 'bobo' },
+      props: { den: [330, 0, 12], cloud: [230, 0, 70], rainbow: [700, 0, 6], puddle: [430, 0, 54] },
+      actors: (kind, o) => (kind === 'bear' ? (o.scarf ? 'mama' : 'bobo') : kind) },
     extra: ['Drip, drop, drip, drop.', 'Dip!', 'Splash, splash, splash!'],
     cover(g, s) { A.line(g, 'rgba(255,255,255,.7)', 3, (h) => { for (const [x, y] of [[-60, -150], [-20, -120], [40, -160], [70, -110], [10, -80], [-70, -90]]) { h.moveTo(x, y); h.lineTo(x - 4, y + 18); } }); g.beginPath(); g.ellipse(0, 78, 96, 20, 0, 0, 7); g.fillStyle = '#7FB7D6'; g.fill(); g.translate(0, 74); g.scale(0.8, 0.8); St.critter(g, s, { blink: 0 }, 'bear'); },
     pages: [

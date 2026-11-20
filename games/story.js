@@ -20,7 +20,7 @@
     const TH = port ? 290 : 176, SH = H - TH, G = SH - (port ? 250 : 150);
     const store = (K.s.done.story = K.s.done.story || {});
     const tales = K.tales || [];
-    let view = 'shelf', tale = null, idx = 0, ch = {}, page = null, shelf = null, book = null, turning = false;
+    let pics = null; let view = 'shelf', tale = null, idx = 0, ch = {}, page = null, shelf = null, book = null, turning = false;
     const finger = { x: W / 2, y: SH / 2, t: -9, down: false, up: -9 };
     st.onmove = (p) => { finger.x = p.x; finger.y = p.y; finger.t = st.t; };
     st.ondown = (p) => { finger.x = p.x; finger.y = p.y; finger.t = st.t; finger.down = true; };
@@ -47,6 +47,8 @@
     }
     function showShelf(justRead) {
       view = 'shelf'; tale = null; page = null;
+      // fetch any generated pictures while the child looks at the shelf; a book only uses them if every one arrived
+      for (const t of K.tales) if (t.art && !t._pics) { const m = (t._pics = {}); let left = t.art.names.length; for (const nm of t.art.names) { const im = new Image(); im.onload = () => { m[nm] = im; if (--left === 0) t.pics = m; }; im.src = t.art.dir + '/' + nm + '.webp'; } }
       if (book) { book.remove(); book = null; }
       shelf = st.add({ z: 1 });
       shelf.add(new E.Node({ z: 0, sprite: A.sprite('stnook' + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.nook(g, s, W, H, shelfY, shelfW)) }));
@@ -70,6 +72,7 @@
     function openBook(t) {
       if (shelf) { shelf.remove(); shelf = null; }
       view = 'book'; tale = t; ch = {}; idx = 0;
+      pics = t.art && t.pics ? t.pics : null;    // generated pictures, if this book has them and they have all arrived
       K.preloadVoice(t.voice);
       book = st.add({ z: 1 });
       // text band
@@ -160,7 +163,35 @@
       const tick = (n) => { n.update = (dt) => { if (n.tick0) n.tick0(dt); if (n.tick) n.tick(dt); }; };
       const withMood = (fn) => { const m = A.mood; A.mood = P.mood || 'day'; try { return fn(); } finally { A.mood = m; } };
 
-      P.bg = (kind, o) => { P.mood = St.mood(kind); return node.add(new E.Node({ z: 0, kind, sprite: A.sprite('stbg' + kind + JSON.stringify(o || {}) + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.bg(g, s, kind, W, H, G, o)) })); };
+      /* ---- generated picture-book art (tale.art): painted backgrounds and cut-out characters stand in for
+         the drawn ones. Positions, touch areas and every motion stay exactly as they are. ---- */
+      const art = pics && tale.art, upp = (nm) => { const a = art.h[nm]; return a ? a / pics[nm].height : upp(art.like[nm]); };
+      const pic = (g, nm, w, h, x, y) => g.drawImage(pics[nm], x, y, w, h);
+      const picBg = (kind) => {
+        const im = pics['bg-' + kind], hz = art.horizon, sc = Math.max(W / im.width, G / (im.height * hz), (H - G) / (im.height * (1 - hz)));
+        const n = node.add(new E.Node({ z: 0, kind })); n.draw = (g) => g.drawImage(im, W / 2 - im.width * sc / 2, G - im.height * hz * sc, im.width * sc, im.height * sc); return n;
+      };
+      const picProp = (n, name) => {
+        const [w, cx, by] = art.props[name], im = pics[name], h = w * im.height / im.width;
+        n.sprite = null;
+        n.draw = (g) => {
+          const b = n.puff ? 1 + Math.sin(st.t * 18) * 0.03 : 1; g.save(); g.scale(b, 2 - b); pic(g, name, w, h, cx - w / 2, by - h); g.restore();
+          if (name === 'puddle') { const age = st.t - (n.rip == null ? -9 : n.rip); if (age < 1.6) for (let i = 0; i < 3; i++) { const q = age / 1.6 - i * 0.18; if (q <= 0 || q > 1) continue; g.beginPath(); g.ellipse(n.ripX || 0, 0, 40 + q * 150, 9 + q * 34, 0, 0, 7); g.strokeStyle = `rgba(255,255,255,${0.7 * (1 - q)})`; g.lineWidth = 4; g.stroke(); } }
+        };
+      };
+      const picActor = (n, base) => {
+        n.draw = (g) => {
+          if (n.float) g.translate(0, Math.sin(st.t * 2 + n.id) * 8);
+          const sq = n.sq || 0; A.groundShadow(g, 50 * (1 + Math.max(0, -sq) * 0.6), 0);
+          const br = n.sleep ? Math.sin(st.t * 1.6) * 0.02 : Math.sin(st.t * 2.4 + n.id) * 0.008;
+          g.scale(1 - sq * 0.5, 1 + sq + br); g.rotate((n.tilt || 0) * 0.5);
+          const one = (nm, a) => { if (!pics[nm]) nm = base; const im = pics[nm], u = upp(nm), w = im.width * u, h = im.height * u; if (a < 1) { g.save(); g.globalAlpha *= a; } pic(g, nm, w, h, -w / 2, 6 - h); if (a < 1) g.restore(); };
+          const mud = n.mud || 0, face = n.sleep ? base + '-sleep' : n.mouth === 'open' || (n.arms || 0) > 0.4 ? base + '-happy' : base;
+          if (mud < 0.98 || !pics[base + '-mud']) one(face, 1);
+          if (mud > 0.02 && pics[base + '-mud']) one(base + '-mud', Math.min(1, mud));
+        };
+      };
+      P.bg = (kind, o) => { if (art && pics['bg-' + kind]) { P.mood = St.mood(kind); return picBg(kind); } P.mood = St.mood(kind); return node.add(new E.Node({ z: 0, kind, sprite: A.sprite('stbg' + kind + JSON.stringify(o || {}) + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], (g, s) => St.bg(g, s, kind, W, H, G, o)) })); };
       /** Custom static art over the whole scene. */
       P.paint = (key, z, fn) => node.add(new E.Node({ z, sprite: withMood(() => A.sprite('stpt' + tale.id + key + Math.round(W) + 'x' + Math.round(H), [0, 0, W, H], fn)) }));
       P.prop = (name, x, y, o) => {
@@ -169,6 +200,7 @@
         const box = St.box[name];
         if (box) { n.sprite = withMood(() => A.sprite('stp' + name + (o.cargo || '') + (o.lit ? 'L' : ''), box, (g, s) => St.prop[name](g, s, o, 0))); n.hit = n.hit || { x: box[0], y: box[1], w: box[2], h: box[3] }; }
         else { n.draw = (g, s) => St.prop[name](g, s, n, st.t); n.hit = n.hit || St.hit[name]; }
+        if (art && art.props[name] && pics[name]) picProp(n, name);
         tick(n); return n;
       };
       P.actor = (kind, x, y, o) => {
@@ -180,6 +212,7 @@
           const p = st.toScreen(n, 0, -80); let tx = st.t - finger.t < 2.5 ? K.clamp((finger.x - p.x) / 260, -1, 1) : n.gaze || 0; if (n.sx < 0) tx = -tx;
           n.look += (tx - n.look) * Math.min(1, dt * 8);
         };
+        if (art) { const nm = art.actors(kind, o); if (nm && pics[nm]) picActor(n, nm); }
         tick(n); return n;
       };
       /** An invisible touch area. */
@@ -399,6 +432,8 @@
 
     /* ============================ go ============================ */
     K._story = {
+      /** For the browser test: open a book at a page. */
+      open(id, i) { if (view === 'shelf') openBook(K.tales.find((t) => t.id === id)); if (i) { ch.pal = ch.pal || 'frog'; startPage(i); } },
       get view() { return view; }, get tale() { return tale && tale.id; }, get idx() { return idx; }, get ch() { return ch; }, get store() { return store; },
       get done() { return !!(page && page.done); }, get turning() { return turning; }, get pages() { return tale ? tale.pages.length : 0; },
       /** What the current action wants, in screen units, for the browser test. */
