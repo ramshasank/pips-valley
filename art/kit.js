@@ -146,6 +146,7 @@
     const bw = x1 - x0, bh = y1 - y0, k = (o.stretch ? 1 : Math.min(bw / im.width, bh / im.height)) * (o.grow || 1);
     const w = o.stretch ? bw : im.width * k, h = o.stretch ? bh : im.height * k, dx = x0 + (bw - w) / 2, dy = o.mid ? y0 + (bh - h) / 2 : y1 - h;
     g.drawImage(im, dx, dy, w, h);
+    if (o.over) { g.globalCompositeOperation = 'source-atop'; g.globalAlpha = o.over[1]; g.fillStyle = o.over[0]; g.fillRect(0, 0, cw, chh); g.globalAlpha = 1; g.globalCompositeOperation = 'source-over'; }
     if (o.tint) { g.globalCompositeOperation = 'multiply'; g.fillStyle = o.tint; g.fillRect(0, 0, cw, chh); g.globalCompositeOperation = 'destination-in'; g.drawImage(im, dx, dy, w, h); }
     out = { canvas: c, ox: sp.ox, oy: sp.oy, w: sp.w, h: sp.h }; fitted.set(key, out); return out;
   };

@@ -109,6 +109,7 @@
   /** About 170 units tall, feet at (0,0). The mouth centre is A.MONSTER_MOUTH.
       st: {blink, squash, open (0..1 mouth), lookX, lookY (-1..1), bleh (tongue out), tint (hex), tintK (0..1), belly (0..1)}
       Older callers may pass mouth:'open' and look. */
+  const FELT = { im: new Image(), ok: false }; FELT.im.onload = () => { FELT.ok = true; }; FELT.im.src = 'img/faces/felt.webp';
   A.MONSTER_MOUTH = { x: 0, y: -44 };
   A.monster = function (g, s, st) {
     st = st || {};
@@ -132,6 +133,7 @@
     body(g, s, col, (h) => A.smooth(h, pts), { x: -84, y: -164, w: 168, h: 164 });
     g.save(); g.beginPath(); A.smooth(g, pts); g.clip();
     g.beginPath(); g.ellipse(58, -50, 60, 110, -0.25, 0, Math.PI * 2); g.fillStyle = A.alpha(A.shade(col, -0.1), 0.3); g.fill();
+    if (FELT.ok) { g.save(); g.globalCompositeOperation = 'multiply'; g.globalAlpha = 0.95; g.drawImage(FELT.im, -92, -172, 184, 184); g.restore(); }   // a soft felt surface, like the picture-book animals
     for (const [fx, fy, fr] of [[-52, -118, 5], [-40, -132, 3.5], [-60, -100, 3], [56, -124, 4]]) { g.beginPath(); g.arc(fx, fy, fr, 0, 7); g.fillStyle = A.alpha(A.shade(col, 0.14), 0.9); g.fill(); }
     g.restore();
     // eyes
@@ -171,7 +173,19 @@
     owl: { c: '#7A5A8C', ear: 'tuft', muzzle: '#F2B33D', owl: true },
   };
   A.faces = Object.keys(FACES);
+  /* Painted heads (the same animals as in the story books and the band). Fetched when the app starts; each is
+     fitted into the space the drawn face fills. Until every one has arrived the drawn faces are used. */
+  const FACE_SRC = { bear: 'band/bear-head', bunny: 'band/bunny-head', fox: 'band/fox-head', frog: 'band/frog-head', lion: 'faces/lion', panda: 'faces/panda', cat: 'faces/cat', owl: 'faces/owl' };
+  const FIM = {}; let fLeft = Object.keys(FACE_SRC).length * 2, fBad = false, facesReady = false;
+  for (const id in FACE_SRC) for (const v of ['', '-shut']) { const im = new Image(); im.onload = () => { FIM[id + v] = im; if (--fLeft <= 0) facesReady = !fBad; }; im.onerror = () => { fBad = true; fLeft--; }; im.src = 'img/' + FACE_SRC[id] + v + '.webp'; }
   A.face = function (g, s, id, st) {
+    if (!FACES[id]) id = 'lion';
+    if (!facesReady) return faceDrawn(g, s, id, st);
+    const shut = !!(st && st.blink > 0.5);
+    const sp = A.fitPic('face-' + id + (shut ? 'b' : '') + A.mood, A.sprite('facedrawn-' + id, [-92, -132, 184, 224], (h, r) => faceDrawn(h, r, id, {})), FIM[id + (shut ? '-shut' : '')], { grow: 1.08, over: A.ctTint() });
+    g.drawImage(sp.canvas, -sp.ox, -sp.oy, sp.w, sp.h);
+  };
+  function faceDrawn(g, s, id, st) {
     const f = FACES[id] || FACES.lion; st = st || {};
     const earC = f.earC || A.shade(f.c, -0.06);
     if (f.mane) { const p = []; for (let i = 0; i < 24; i++) { const a = (i / 24) * Math.PI * 2, rr = i % 2 ? 54 : 68; p.push([Math.cos(a) * rr, 2 + Math.sin(a) * rr]); } g.beginPath(); A.smooth(g, p); A.paper(g, s, f.mane, { shadow: 0.6, box: { x: -62, y: -58, w: 124, h: 120 } }); }
@@ -198,7 +212,7 @@
     A.line(g, A.C.ink, 2.6, (h) => { h.moveTo(-8, 18); h.quadraticCurveTo(0, 25, 8, 18); });
     if (f.whiskers) A.line(g, A.alpha(A.C.ink, 0.5), 1.6, (h) => { for (const side of [-1, 1]) { h.moveTo(side * 16, 14); h.lineTo(side * 38, 10); h.moveTo(side * 16, 19); h.lineTo(side * 38, 22); } });
     cheek(g, -30, 12, 7); cheek(g, 30, 12, 7);
-  };
+  }
   /** Old saves stored an emoji; map it to a drawn face. */
   const FROM_EMOJI = { '🦁': 'lion', '🐯': 'lion', '🐼': 'panda', '🦊': 'fox', '🐸': 'frog', '🐵': 'bear', '🦄': 'bunny', '🐙': 'owl', '🦖': 'frog', '🐳': 'cat', '🐶': 'bear', '🐱': 'cat', '🐰': 'bunny', '🦋': 'owl', '🚀': 'fox', '🚂': 'lion' };
   A.faceId = (av) => (FACES[av] ? av : FROM_EMOJI[av] || 'lion');

@@ -706,7 +706,7 @@
     const startScreen = () => K.el('div.start', null, [
       ...clouds,
       K.el('div.float', null, K.pip(Math.min(innerWidth, innerHeight) * 0.34)),
-      K.el('h1', { text: "Pip's Playhouse" }),
+      K.el('h1', { text: "Pip's Valley" }),
       K.el('button.big-btn.pulse', { text: '▶ Play', onclick: go }),
     ]);
     K.boot2();

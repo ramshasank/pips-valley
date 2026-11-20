@@ -91,6 +91,7 @@
      are painted too. The street, shops and van stay as they are. Fetched when the app starts; until every
      picture has arrived the paper drawings are used. */
   const PIC = {}, PSRC = { bear: 'bobo/bobo', 'bear-happy': 'bobo/bobo-happy', bunny: 'bobo/bunny', fox: 'bobo/fox', cake: 'toot/cakes', flowers: 'toot/flowers', apples: 'toot/apples', letter: 'town/letter', balloon: 'town/balloon' };
+  for (const k of ['pig', 'chick', 'mouse', 'hedgehog', 'dog']) { PSRC['k-' + k] = 'faces/' + k; PSRC['k-' + k + '-shut'] = 'faces/' + k + '-shut'; }
   let pLeft = Object.keys(PSRC).length, pBad = false;
   T.pics = false;
   for (const nm in PSRC) { const im = new Image(); im.onload = () => { PIC[nm] = im; if (--pLeft <= 0) T.pics = !pBad; }; im.onerror = () => { pBad = true; pLeft--; }; im.src = 'img/' + PSRC[nm] + '.webp'; }
@@ -253,6 +254,12 @@
   /* ---------------- townsfolk who keep the shops ---------------- */
   /** A head about 80 across centred on (0,0). kind: pig | chick | mouse | hedgehog | dog. st: {blink} */
   T.keeper = function (g, s, kind, st) {
+    const shut = !!(st && st.blink > 0.5), im = T.pics && PIC['k-' + kind + (shut ? '-shut' : '')];
+    if (!im) return keeperDrawn(g, s, kind, st);
+    const sp = A.fitPic('keeper-' + kind + (shut ? 'b' : ''), A.sprite('keeperdrawn-' + kind, [-64, -76, 128, 140], (h, r) => keeperDrawn(h, r, kind, {})), im, { grow: 1.12 });
+    g.drawImage(sp.canvas, -sp.ox, -sp.oy, sp.w, sp.h);
+  };
+  function keeperDrawn(g, s, kind, st) {
     st = st || {};
     const col = { pig: '#F4B6B8', chick: '#F7D667', mouse: '#B9B4C4', hedgehog: '#F0D9B5', dog: '#E6C08C' }[kind];
     const head = (rx, ry) => piece(g, s, col, (p) => A.blob(p, 0, 0, rx || 38, ry || 35, 0.02, 4, 10), { shadow: 0.6, box: bx(-38, -35, 76, 70), light: 0.07 });
@@ -292,7 +299,7 @@
       g.beginPath(); g.ellipse(0, 6, 6, 4.5, 0, 0, 7); g.fillStyle = C.ink; g.fill(); smile(g, 0, 14, 7);
       g.beginPath(); g.ellipse(0, 22, 5, 6, 0, 0, 7); g.fillStyle = '#E58A8A'; g.fill();
     }
-  };
+  }
 
   /* ---------------- the van ---------------- */
   /** Faces right. Wheels touch y=0 at x=-56 and x=60. Pip sits behind the window (drawn first, by the game). */

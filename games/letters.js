@@ -127,11 +127,11 @@
     }
 
     /* ---------------- meet the letters ---------------- */
-    const perPage = port ? 4 : 5, pages = Math.ceil(26 / perPage), fm = () => (Lt.pics ? (port ? 186 : 272) : port ? 158 : 230);   // picture monsters stand bigger
-    function pageLetters(pg) { const out = []; for (let i = 0; i < perPage; i++) out.push(ABC[(pg * perPage + i) % 26]); return out; }
+    const pp = () => (port ? (Lt.pics ? 3 : 4) : 5), fm = () => (Lt.pics ? (port ? 198 : 272) : port ? 158 : 230);   // picture monsters stand bigger
+    function pageLetters(pg) { const out = []; for (let i = 0; i < pp(); i++) out.push(ABC[(pg * pp() + i) % 26]); return out; }
     function showPage(dir) {
       leave(mons.slice(), dir || 1);
-      const ls = pageLetters(store.page || 0), x0 = port ? 82 : 200, x1 = W - (port ? 82 : 240);
+      const ls = pageLetters(store.page || 0), x0 = port ? (Lt.pics ? 134 : 82) : 200, x1 = W - (port ? (Lt.pics ? 134 : 82) : 240);
       ls.forEach((ch, i) => {
         const x = x0 + ((x1 - x0) * i) / (ls.length - 1), y = G + (i % 2 ? 26 : 0);
         const n = monster(ch, -160 - i * 30, y, fm()); n.floor = y; n.home = { x, y };
@@ -421,7 +421,7 @@
     more.draw = (g, s) => { disc(g, s); g.fillStyle = A.C.ink; g.beginPath(); A.cut(g, [[-6, -24], [22, 0], [-6, 24]], 6, 0, 3); g.fill(); A.line(g, A.C.ink, 9, (h) => { h.moveTo(-22, 0); h.lineTo(0, 0); }); };
     more.onTap = () => {
       if (busy && mode !== 'trace') return; K.sfx.whoosh();
-      if (mode === 'meet') { store.page = ((store.page || 0) + 1) % pages; K.save(); showPage(1); }
+      if (mode === 'meet') { store.page = ((store.page || 0) + 1) % Math.ceil(26 / pp()); K.save(); showPage(1); }
       else if (mode === 'trace') { gen++; sayTok++; K.hush(); nextTrace(true); }
       else nextWord(true);
     };

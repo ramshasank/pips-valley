@@ -173,6 +173,16 @@ BOOKS["faces"] = {
 }
 for _id in ["panda", "cat", "owl", "lion", "pig", "chick", "mouse", "hedgehog", "dog"]:
     BOOKS["faces"][_id + "-shut"] = dict(size="1024x1024", alpha=True, max=384, ref=[_id], prompt=SHUT)
+# ---- the pictures for the three-letter words in Letter Monsters that have no picture yet
+_W = lambda text: dict(size="1024x1024", alpha=True, max=448, ref=["bobo/bobo"], prompt=CUT.replace("One single character", "One single thing") + STYLEREF + text)
+BOOKS["words"] = {
+    "pig": _W("a small chubby pink piglet with a round snout, floppy ears, a curly tail, big shiny eyes and rosy cheeks, standing upright, facing the viewer."),
+    "dog": _W("a small tan puppy with floppy brown ears, a cream muzzle and tummy, a wagging tail, big shiny eyes and rosy cheeks, sitting upright, facing the viewer."),
+    "cow": _W("a small chubby white calf with black patches, a pink muzzle, tiny horns, big shiny eyes and rosy cheeks, standing upright, facing the viewer."),
+    "bus": _W("a cheerful yellow toy school bus seen exactly from the side, facing right, with three square windows, a red stripe, two dark wheels and a friendly smiling face at the front. No people inside."),
+    "egg": _W("one big smooth cream-white egg standing upright, with a few pale freckles and a small smiling face (two dot eyes, rosy cheeks). Not cracked."),
+    "egg-open": _W("a fluffy yellow baby chick, smiling with a tiny orange beak, popping out of the bottom half of a cracked cream-white eggshell, with a small piece of shell on its head like a hat."),
+}
 BOOKS["letters"] = {}
 for ch, (col, feat) in MONSTERS.items():
     BOOKS["letters"][ch] = dict(size="1024x1024", alpha=True, max=512, ref=["pip/pip"], prompt=CUT + STYLEREF + MON.format(col=col, feat=feat, mouth="a small closed smile"))

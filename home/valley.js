@@ -337,10 +337,10 @@
     card.draw = (g, s) => {
       g.save(); g.rotate(-0.025);
       g.font = `800 ${Math.min(108, st.W / 8)}px ${A.FONT_TITLE}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      const tw = g.measureText("Pip's Playhouse").width, w = tw + 110, h = 150;
+      const tw = g.measureText("Pip's Valley").width, w = tw + 110, h = 150;
       for (const side of [-1, 1]) { g.beginPath(); A.cut(g, [[side * (w / 2 - 20), -40], [side * (w / 2 + 60), -30], [side * (w / 2 + 36), 10], [side * (w / 2 + 64), 52], [side * (w / 2 - 20), 46]], 6, 1, side + 3); A.paper(g, s, A.shade(A.C.tomato, -0.08), { shadow: 0.8 }); }
       g.beginPath(); A.rect(g, -w / 2, -h / 2, w, h, 18, 5, 1.2); A.paper(g, s, '#FBF6EC', { shadow: 1.2, depth: 1.4, box: { x: -w / 2, y: -h / 2, w, h }, light: 0.04 });
-      g.fillStyle = A.C.ink; g.fillText("Pip's Playhouse", 0, 6);
+      g.fillStyle = A.C.ink; g.fillText("Pip's Valley", 0, 6);
       g.restore();
     };
     const play = st.add({ ui: true, z: 71, x: st.W / 2, y: st.H * 0.3 + 170, label: 'Play', hitR: 76 });

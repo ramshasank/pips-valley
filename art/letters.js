@@ -84,11 +84,24 @@
      TUM: where the tummy patch is in each picture: [centre x, centre y, radius], as fractions of the
      picture's width, height and width. Lt.ready() says whether every picture arrived; if not, the
      paper letter-shaped monsters below are used. ---- */
+  /** The painted picture for each three-letter word (several are shared with the story books and the kitchen). */
+  const WSRC = { cat: 'star/cat', sun: 'toot/sun', dog: 'words/dog', bus: 'words/bus', pig: 'words/pig', hat: 'kitchen/hat', fox: 'bobo/fox', egg: 'words/egg', 'egg-open': 'words/egg-open', cow: 'words/cow', owl: 'star/owl' }, WIM = {};
+  /** Draw a word's picture standing on (0,0), about 170 tall like the paper drawings. a: 0 on its card … 1 come alive. */
+  function wordPic(g, w, t, a) {
+    const open = w === 'egg' && a >= 0.5, im = WIM[open ? 'egg-open' : w], k = Math.min(168 / im.height, 210 / im.width), iw = im.width * k, ih = im.height * k;
+    g.save();
+    if (w === 'sun') { g.translate(0, -ih / 2); g.rotate(Math.sin(t * 0.9) * 0.18); g.translate(0, ih / 2); }
+    else if (w === 'egg' && a > 0 && a < 0.5) g.rotate(Math.sin(t * 30) * 0.08);
+    else g.rotate(Math.sin(t * 2 + w.length) * 0.025);
+    if (a >= 1 && w !== 'sun') g.translate(0, -Math.abs(Math.sin(t * 8)) * 5);
+    g.drawImage(im, -iw / 2, 4 - ih, iw, ih);
+    g.restore();
+  }
   const TUM = { 'a-open': [0.492, 0.66, 0.281], a: [0.494, 0.662, 0.279], 'b-open': [0.493, 0.641, 0.25], b: [0.491, 0.644, 0.251], 'c-open': [0.494, 0.688, 0.265], c: [0.493, 0.688, 0.269], 'd-open': [0.492, 0.678, 0.276], d: [0.489, 0.684, 0.276], 'e-open': [0.489, 0.675, 0.274], e: [0.49, 0.671, 0.277], 'f-open': [0.493, 0.684, 0.267], f: [0.49, 0.684, 0.268], 'g-open': [0.495, 0.681, 0.265], g: [0.494, 0.685, 0.264], 'h-open': [0.488, 0.628, 0.256], h: [0.488, 0.63, 0.255], 'i-open': [0.493, 0.687, 0.271], i: [0.494, 0.684, 0.272], 'j-open': [0.492, 0.709, 0.268], j: [0.492, 0.716, 0.26], 'k-open': [0.494, 0.673, 0.254], k: [0.494, 0.677, 0.257], 'l-open': [0.492, 0.662, 0.273], l: [0.492, 0.667, 0.271], 'm-open': [0.494, 0.629, 0.273], m: [0.493, 0.638, 0.273], 'n-open': [0.487, 0.688, 0.26], n: [0.489, 0.691, 0.262], 'o-open': [0.491, 0.664, 0.26], o: [0.49, 0.659, 0.262], 'p-open': [0.494, 0.664, 0.251], p: [0.495, 0.671, 0.253], 'q-open': [0.489, 0.678, 0.274], q: [0.489, 0.685, 0.271], 'r-open': [0.492, 0.665, 0.253], r: [0.491, 0.669, 0.253], 's-open': [0.494, 0.709, 0.257], s: [0.494, 0.709, 0.26], 't-open': [0.493, 0.678, 0.258], t: [0.49, 0.681, 0.262], 'u-open': [0.489, 0.679, 0.262], u: [0.489, 0.679, 0.261], 'v-open': [0.494, 0.669, 0.277], v: [0.495, 0.677, 0.269], 'w-open': [0.493, 0.653, 0.276], w: [0.494, 0.655, 0.277], 'x-open': [0.489, 0.659, 0.268], x: [0.491, 0.66, 0.272], 'y-open': [0.493, 0.673, 0.281], y: [0.489, 0.684, 0.275], 'z-open': [0.491, 0.671, 0.261], z: [0.49, 0.667, 0.26] };
   const MIM = {}; let mAsked = false, mLeft = 52, mBad = false;
   Lt.pics = false;
   Lt.ready = function () {
-    if (!mAsked) { mAsked = true; for (const ch of 'abcdefghijklmnopqrstuvwxyz') for (const v of ['', '-open']) { const im = new Image(); im.onload = () => { MIM[ch + v] = im; mLeft--; }; im.onerror = () => { mBad = true; mLeft--; }; im.src = 'img/letters/' + ch + v + '.webp'; } }
+    if (!mAsked) { mAsked = true; mLeft += Object.keys(WSRC).length; for (const nm in WSRC) { const im = new Image(); im.onload = () => { WIM[nm] = im; mLeft--; }; im.onerror = () => { mBad = true; mLeft--; }; im.src = 'img/' + WSRC[nm] + '.webp'; } for (const ch of 'abcdefghijklmnopqrstuvwxyz') for (const v of ['', '-open']) { const im = new Image(); im.onload = () => { MIM[ch + v] = im; mLeft--; }; im.onerror = () => { mBad = true; mLeft--; }; im.src = 'img/letters/' + ch + v + '.webp'; } }
     return new Promise((res) => { const t0 = Date.now(); (function wait() { if (mLeft <= 0 || Date.now() - t0 > 5000) { Lt.pics = mLeft <= 0 && !mBad; res(Lt.pics); } else setTimeout(wait, 50); })(); });
   };
   const INK = '#2E2A3B';
@@ -417,6 +430,7 @@
     { w: 'cow', act: 'walk', draw: (g, s, t, a) => critter(g, s, cow, t, a) },
     { w: 'owl', act: 'fly', draw: owl },
   ];
+  for (const w of Lt.WORDS) { const drawn = w.draw; w.draw = (g, s, t, a) => (Lt.pics && WIM[w.w] ? wordPic(g, w.w, t, a) : drawn(g, s, t, a)); }
 
   /** The card a picture sits on (centre at 0,0). */
   Lt.card = function (g, s, w, h, tint) {
