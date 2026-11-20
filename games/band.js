@@ -30,6 +30,7 @@
   }
 
   function start(st, ctx) {
+    if (!B.pics) B.ready().then((ok) => { if (ok && ctx.alive) K.go('band'); });      // the pictures arrived late: start again with them
     const W = st.W, H = st.H, land = W >= 1000;
     const store = (K.s.done.band = K.s.done.band || {});
     const IDS = ['bear', 'bunny', 'fox', 'frog'];

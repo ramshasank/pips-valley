@@ -112,6 +112,46 @@ BOOKS["build"] = {
     "room-tall": dict(size="1024x1536", ref=["bobo/bg-day"], prompt=ROOM.format(window="In the middle of the wall, in the top third of the picture, is a white-framed window with coral curtains, looking out on green hills and a sunny sky.", shelf="There is no shelf.", floor="half")),
     "wood": dict(size="1024x1024", ref=["bobo/bg-day"], prompt="A flat, even, seamless texture that fills the whole picture edge to edge: the surface of a hand-painted wooden toy block in a pale cream-white colour, with soft gentle wood grain lines running sideways and a slightly uneven gouache paint feel. Very light and low contrast. No objects, no shapes, no shadows, no border, just the surface."),
 }
+# ---- Animal Band: each player is a head, a body without head or arms (the app draws the moving arms), and an instrument
+HEAD = OBJ + "Only the head of the character in the reference picture, cut off cleanly under the chin: no neck, no body, no shoulders, no arms. Exactly the same face, colours and style, facing the viewer straight on, with a small happy smile."
+SHUT = OBJ + "Exactly the same head as the reference picture, same size, colours and style, no body. The only change: both eyes are closed in two little curved lines, with a peaceful smile, as if resting."
+BODY = OBJ + ("Only the body of the character in the reference picture, WITHOUT its head and WITHOUT its arms: a chubby rounded sitting torso in exactly the same fur colour, material and style, "
+             "with the same pale tummy patch and two little feet at the bottom. The top of the torso is a smooth rounded shoulder shape with nothing above it: no head, no neck, no face, no arms, no hands.{extra}")
+BOOKS["band"] = {}
+for _id, _ref, _extra in [("bear", "bobo/bobo", ""), ("bunny", "bobo/bunny", " A small white fluffy tail shows at the left side."), ("fox", "bobo/fox", " A bushy orange tail with a white tip curls up at the left side."), ("frog", "bobo/frog", "")]:
+    BOOKS["band"][_id + "-head"] = dict(size="1024x1024", alpha=True, max=512, ref=[_ref], prompt=HEAD)
+    BOOKS["band"][_id + "-body"] = dict(size="1024x1024", alpha=True, max=512, ref=[_ref], prompt=BODY.format(extra=_extra))
+for _id in ["bear", "bunny", "fox", "frog"]:
+    BOOKS["band"][_id + "-head-shut"] = dict(size="1024x1024", alpha=True, max=512, ref=[_id + "-head"], prompt=SHUT)
+_I = lambda text, size="1024x1024": dict(size=size, alpha=True, max=640, ref=["bobo/bobo"], prompt=OBJ + STYLEREF + text + " No characters, no faces.")
+BOOKS["band"].update({
+    "bass": _I("a toy bass drum seen straight from the front: a big perfectly round cream drum skin with a big golden yellow star in the middle and a thick tomato-red rim, standing on two short dark legs."),
+    "snare": _I("a small toy snare drum seen from the side, on a thin dark three-legged stand: a teal drum with a white zigzag pattern round it and a cream skin on top."),
+    "cymbal": _I("one golden cymbal seen from the side, almost edge-on, so it is a thin, wide, flat golden lens shape with a small rounded dome in the middle. Only the cymbal: no stand, no stick.", "1536x1024"),
+    "xframe": _I("the empty wooden frame of a toy xylophone seen from the front: two long horizontal honey-brown wooden rails, one above the other, joined at both ends and standing on four short legs. There are no bars on it.", "1536x1024"),
+    "bar": _I("one single xylophone bar standing upright: a tall, narrow rounded rectangle of plain white felt, with a small dark round screw near the top and another near the bottom. Nothing else."),
+    "horn": _I("a golden toy trumpet seen exactly from the side, lying level: the small mouthpiece at the far left, a straight tube with three little round valves on top, and the wide bell opening at the far right.", "1536x1024"),
+    "uke": _I("a small wooden ukulele seen from the front, lying on its side: its rounded honey-brown body on the left with a dark round sound hole, its neck pointing to the right with four pale strings, and small tuning pegs at the far right end.", "1536x1024"),
+})
+# ---- Monster Kitchen: the things Munch eats (and the silly things he spits out), and the kitchen itself
+FOOD = {
+    "banana": "one ripe yellow banana, gently curved", "apple": "one shiny red apple with a short stalk and a green leaf", "strawberry": "one red strawberry with tiny pale seeds and a green leafy top",
+    "orange": "one round orange with a tiny green leaf", "carrot": "one orange carrot with a green leafy top, lying at a slant", "cookie": "one round golden-brown cookie with dark chocolate chips",
+    "pear": "one green pear with a short stalk", "lemon": "one bright yellow lemon", "tomato": "one round red tomato with a green star-shaped top",
+    "cucumber": "one dark green cucumber lying at a slant", "eggplant": "one glossy purple aubergine with a green top", "donut": "one ring doughnut with pink icing and coloured sprinkles",
+    "watermelon": "one triangular slice of watermelon, red with black seeds and a green rind", "grapes": "one bunch of purple grapes with a small green leaf", "broccoli": "one floret of green broccoli like a tiny tree",
+    "cheese": "one wedge of yellow cheese with a few round holes", "shoe": "one child's red lace-up shoe seen from the side", "sock": "one teal sock with yellow stripes",
+    "hat": "one blue woolly bobble hat", "ball": "one beach ball with red, yellow and blue segments", "sponge": "one yellow rectangular washing-up sponge with a green scouring top", "book": "one closed purple story book with a yellow star on the cover",
+}
+BOOKS["kitchen"] = {k: dict(size="1024x1024", alpha=True, max=384, ref=["bobo/bobo"], prompt=OBJ + STYLEREF + v + ". No face, no characters.") for k, v in FOOD.items()}
+KWALL = ("In the same cut paper and gouache style as the reference picture, but an indoor scene with no characters: the back wall of a cosy kitchen seen straight on, filling the whole picture. "
+         "The top two thirds of the wall is warm cream wallpaper with faint vertical stripes; the bottom third is pale mint-green square tiles. {things} "
+         "There is no counter, no table, no cupboards and no floor: the tiles run right to the bottom edge. Calm and uncluttered.")
+BOOKS["kitchen"].update({
+    "wall-wide": dict(size="1536x1024", ref=["bobo/bg-day"], prompt=KWALL.format(things="On the left, high up, is a white-framed window with coral curtains looking out on green hills. In the middle, high up, is a wooden shelf with two glass jars and a small plant in a pot. The right third of the wall is empty.")),
+    "wall-tall": dict(size="1024x1536", ref=["bobo/bg-day"], prompt=KWALL.format(things="At the top is a white-framed window with coral curtains looking out on green hills. The rest of the wall is empty.")),
+    "counter": dict(size="1536x1024", ref=["bobo/bg-day"], prompt="In the same cut paper and gouache style as the reference picture, but with no characters: the front of a kitchen counter seen straight on, filling the whole picture from edge to edge. Along the very top is a thick honey-coloured wooden worktop, a straight level band about one eighth of the picture tall. Below it, filling the rest, is a row of four wide teal cupboard doors, each with one small round yellow knob. No wall, no floor, nothing on the worktop."),
+})
 BOOKS["letters"] = {}
 for ch, (col, feat) in MONSTERS.items():
     BOOKS["letters"][ch] = dict(size="1024x1024", alpha=True, max=512, ref=["pip/pip"], prompt=CUT + STYLEREF + MON.format(col=col, feat=feat, mouth="a small closed smile"))

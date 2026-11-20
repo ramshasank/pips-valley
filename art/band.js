@@ -142,6 +142,34 @@
     g.beginPath(); g.arc(-2, 0, 13, 0, 7); g.fillStyle = '#5A3A28'; g.fill(); g.beginPath(); g.arc(-2, 0, 17, 0, 7); g.strokeStyle = 'rgba(106,68,48,.45)'; g.lineWidth = 2.5; g.stroke();
     g.beginPath(); A.rect(g, -50, -13, 9, 26, 3, 2, 0); g.fillStyle = '#6B4430'; g.fill();
   });
+  /* ---------------- painted pictures (img/band) ----------------
+     Each drawn piece above (a head, a body, a drum) can be swapped for a picture. The picture is fitted into
+     the very same space the drawn piece fills, so every position, swing and bounce in the game stays as it was.
+     Pictures are fetched when the app starts; until they have all arrived the paper pieces are used. */
+  const PIC_NAMES = ['bear-head', 'bear-head-shut', 'bear-body', 'bunny-head', 'bunny-head-shut', 'bunny-body', 'fox-head', 'fox-head-shut', 'fox-body', 'frog-head', 'frog-head-shut', 'frog-body', 'bass', 'snare', 'cymbal', 'xframe', 'bar', 'horn', 'uke'];
+  const PIC = {}; let pLeft = PIC_NAMES.length, pBad = false;
+  B.pics = false;
+  const allIn = () => {
+    B.pics = !pBad;
+    if (B.pics) for (const id in B.ANIMALS) B.ANIMALS[id].c = avgColor(PIC[id + '-body']);     // the drawn arms take the picture's fur colour
+  };
+  for (const nm of PIC_NAMES) { const im = new Image(); im.onload = () => { PIC[nm] = im; if (--pLeft <= 0) allIn(); }; im.onerror = () => { pBad = true; pLeft--; }; im.src = 'img/band/' + nm + '.webp'; }
+  B.ready = () => new Promise((res) => { const t0 = Date.now(); (function wait() { if (pLeft <= 0 || Date.now() - t0 > 8000) res(B.pics); else setTimeout(wait, 80); })(); });
+  /** The usual colour of the upper part of a picture (its fur), skipping the pale tummy. */
+  function avgColor(im) {
+    const c = document.createElement('canvas'); c.width = c.height = 40; const x = c.getContext('2d'); x.drawImage(im, 0, 0, 40, 40);
+    const d = x.getImageData(0, 0, 40, 12).data; let r = 0, g = 0, b = 0, n = 0;
+    for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+    const h = (v) => Math.round(v / (n || 1)).toString(16).padStart(2, '0'); return n ? '#' + h(r) + h(g) + h(b) : '#A8754F';
+  }
+  const fit = A.fitPic;
+  const swap = (name, pic, o) => { const old = B[name]; B[name] = function (a, b) { const nm = pic(a, b), im = B.pics && PIC[nm]; const sp = old(a, b); return im ? fit(nm + (o && o.key ? o.key(a) : ''), sp, im, typeof o === 'function' ? o(a) : o) : sp; }; };
+  swap('body', (id) => id + '-body');
+  swap('head', (id, blink) => id + '-head' + (blink ? '-shut' : ''), { grow: 1.06 });
+  swap('bassDrum', () => 'bass'); swap('snare', () => 'snare'); swap('cymbal', () => 'cymbal', { mid: 1, stretch: 1 });
+  swap('xyloFrame', () => 'xframe', { stretch: 1 }); swap('horn', () => 'horn', { mid: 1 }); swap('uke', () => 'uke', { mid: 1 });
+  { const old = B.bar; B.bar = (i) => { const sp = old(i); return B.pics && PIC.bar ? fit('bar' + i, sp, PIC.bar, { tint: B.BARS[i], stretch: 1 }) : sp; }; }
+
   B.plaque = () => A.sprite('band-plaque', [-112, -24, 224, 48], (g, s) => { g.beginPath(); A.rect(g, -110, -22, 220, 44, 22, 5, 0.6); A.paper(g, s, '#F6EFE3', { shadow: 0.9, light: 0.04, grain: 0.15, box: { x: -110, y: -22, w: 220, h: 44 } }); });
 
   /* ---------------- little icons (drawn inside a radius of about 34) ---------------- */

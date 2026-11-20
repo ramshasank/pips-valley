@@ -158,11 +158,20 @@
     { name: 'ball', a: 'a ball', silly: 1 }, { name: 'sponge', a: 'a sponge', silly: 1 }, { name: 'book', a: 'a book', silly: 1 },
   ];
   Kt.COLORS = { red: '#DE4E46', yellow: '#F2CF4A', orange: '#F0923B', green: '#5E9E57', purple: '#7B5AA6', brown: '#B07A4E' };
-  Kt.sprite = (name) => A.sprite('food-' + name, [-62, -62, 124, 124], F[name]);
+  /* Painted pictures (img/kitchen): every food and silly thing, the kitchen wall (wide and tall) and the counter.
+     Each food picture is fitted into the space its paper drawing fills, so sizes, throws and the blender stay as
+     they were. Fetched when the app starts; until all have arrived the paper drawings are used. */
+  const PIC = {}, PIC_NAMES = Object.keys(F).concat(['wall-wide', 'wall-tall', 'counter']); let pLeft = PIC_NAMES.length, pBad = false;
+  Kt.pics = false;
+  for (const nm of PIC_NAMES) { const im = new Image(); im.onload = () => { PIC[nm] = im; if (--pLeft <= 0) Kt.pics = !pBad; }; im.onerror = () => { pBad = true; pLeft--; }; im.src = 'img/kitchen/' + nm + '.webp'; }
+  Kt.ready = () => new Promise((res) => { const t0 = Date.now(); (function wait() { if (pLeft <= 0 || Date.now() - t0 > 8000) res(Kt.pics); else setTimeout(wait, 80); })(); });
+  Kt.sprite = (name) => { const sp = A.sprite('food-' + name, [-62, -62, 124, 124], F[name]); return Kt.pics && PIC[name] ? A.fitPic('food-' + name, sp, PIC[name], { mid: 1, grow: 1.08 }) : sp; };
+
 
   /* ---------------- the room ---------------- */
   /** Wall, window and shelf. cy = y of the counter top. */
   Kt.wall = function (g, s, W, H, cy) {
+    if (Kt.pics) { const im = PIC[W >= 1000 ? 'wall-wide' : 'wall-tall'], sc = Math.max(W / im.width, (cy + 20) / im.height); g.drawImage(im, W / 2 - im.width * sc / 2, 0, im.width * sc, im.height * sc); return; }
     g.beginPath(); g.rect(0, 0, W, H); A.paper(g, s, '#F1E2C8', { shadow: 0, box: { x: 0, y: 0, w: 0, h: H }, light: 0.03, grain: 0.3 });
     // soft wallpaper stripes
     for (let x = 30; x < W; x += 92) { g.fillStyle = 'rgba(214,170,120,.10)'; g.fillRect(x, 0, 40, cy - 190); }
@@ -198,6 +207,12 @@
   };
   /** Counter: worktop and cupboards. Drawn in front of the monster. */
   Kt.counter = function (g, s, W, H, cy) {
+    if (Kt.pics) {     // the worktop is the top sixth of the picture: sized to match the drawn one, then repeated along the room
+      const im = PIC.counter, sc = Math.max(58 / (0.165 * im.height), (H - cy) / im.height), w = im.width * sc;
+      g.save(); g.shadowColor = 'rgba(46,40,70,.25)'; g.shadowBlur = 10 * s; g.shadowOffsetY = -2 * s; g.fillStyle = '#F4A21A'; g.fillRect(0, cy + 4, W, 20); g.restore();
+      for (let x = W / 2 - w / 2 - Math.ceil(W / w) * w; x < W; x += w) g.drawImage(im, x, cy, w + 1, im.height * sc);
+      return;
+    }
     P(g, s, '#5E8F8C', (h) => h.rect(-20, cy + 50, W + 40, H - cy), { shadow: 0, box: { x: 0, y: cy + 50, w: 0, h: H - cy - 50 }, light: 0.05 });
     const n = Math.max(2, Math.round(W / 300)), dw = W / n;
     for (let i = 0; i < n; i++) {

@@ -133,6 +133,23 @@
   /** A thin pencil-like line (stitches, plank lines, chalk). */
   A.line = function (g, color, w, fn, cap) { g.save(); g.beginPath(); fn(g); g.strokeStyle = color; g.lineWidth = w; g.lineCap = cap || 'round'; g.lineJoin = 'round'; g.stroke(); g.restore(); };
 
+  const fitted = new Map();
+  /** A sprite the same size as a drawn one, with the picture fitted into the space the drawing's ink fills.
+      o: {tint: a colour laid over a white picture, grow: scale about the middle, stretch: fill the space exactly} */
+  A.fitPic = function (key, sp, im, o) {
+    key += '|' + A.res; let out = fitted.get(key); if (out) return out;
+    o = o || {};
+    const cw = sp.canvas.width, chh = sp.canvas.height, d = sp.canvas.getContext('2d').getImageData(0, 0, cw, chh).data;
+    let x0 = cw, x1 = 0, y0 = chh, y1 = 0;
+    for (let y = 0; y < chh; y += 2) for (let x = 0; x < cw; x += 2) if (d[(y * cw + x) * 4 + 3] > 120) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+    const c = document.createElement('canvas'); c.width = cw; c.height = chh; const g = c.getContext('2d');
+    const bw = x1 - x0, bh = y1 - y0, k = (o.stretch ? 1 : Math.min(bw / im.width, bh / im.height)) * (o.grow || 1);
+    const w = o.stretch ? bw : im.width * k, h = o.stretch ? bh : im.height * k, dx = x0 + (bw - w) / 2, dy = o.mid ? y0 + (bh - h) / 2 : y1 - h;
+    g.drawImage(im, dx, dy, w, h);
+    if (o.tint) { g.globalCompositeOperation = 'multiply'; g.fillStyle = o.tint; g.fillRect(0, 0, cw, chh); g.globalCompositeOperation = 'destination-in'; g.drawImage(im, dx, dy, w, h); }
+    out = { canvas: c, ox: sp.ox, oy: sp.oy, w: sp.w, h: sp.h }; fitted.set(key, out); return out;
+  };
+
   /** The pointing paper hand that shows a move. The tip of the pointing finger is at (0,0) and the hand
       hangs down to the right. The pointing finger stands alone on one edge, the thumb pokes out low on
       the far side and the other fingers are a row of small curled knuckles. press 0..1 dips it down. */

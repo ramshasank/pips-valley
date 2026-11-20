@@ -92,11 +92,13 @@
 
     /* ---------- room ---------- */
     const key = Math.round(W) + 'x' + Math.round(H);
-    st.add({ z: 0, sprite: A.sprite('kwall' + key, [0, 0, W, H], (g, s) => Kt.wall(g, s, W, H, cy)) });
-    st.add({ z: 20, sprite: A.sprite('kcounter' + key, [0, 0, W, H], (g, s) => Kt.counter(g, s, W, H, cy)) });
+    if (!Kt.pics) Kt.ready().then((ok) => { if (ok && ctx.alive) K.go('kitchen'); });      // the pictures arrived late: start again with them
+    st.add({ z: 0, sprite: A.sprite('kwall' + (Kt.pics ? 'P' : '') + key, [0, 0, W, H], (g, s) => Kt.wall(g, s, W, H, cy)) });
+    st.add({ z: 20, sprite: A.sprite('kcounter' + (Kt.pics ? 'P' : '') + key, [0, 0, W, H], (g, s) => Kt.counter(g, s, W, H, cy)) });
     // the cookie jar counts the orders Munch has enjoyed
     const jp = land ? { x: W * 0.44, y: cy - 202 } : { x: W - 84, y: 540 }; // on the tile ledge; on a phone, on a little wall shelf
-    if (!land) st.add({ z: 1, draw(g, s) { for (const y of [344, 540]) { g.beginPath(); A.rect(g, W - 150, y, 134, 14, 4, y, 0.5); A.paper(g, s, '#C08A5A', { shadow: 0.8 }); } } });
+    // (with the painted wall the jar gets its own little shelf on the tablet too)
+    if (!land || Kt.pics) st.add({ z: 1, draw(g, s) { for (const y of land ? [jp.y] : [344, 540]) { g.beginPath(); A.rect(g, land ? jp.x - 78 : W - 150, y, land ? 156 : 134, 14, 4, y, 0.5); A.paper(g, s, Kt.pics ? '#E3A04A' : '#C08A5A', { shadow: 0.8 }); } } });
     const cookieJar = st.add({ z: 2, x: jp.x, y: jp.y, pop: 0 });
     cookieJar.draw = (g, s) => {
       g.save(); const k = 1 + cookieJar.pop * 0.12; g.scale(k, k);
