@@ -44,6 +44,8 @@
     return tcache[k] || (tcache[k] = A.mix(base, t[0], t[1]));
   };
   /** How much a tappable thing is tinted: less than the scenery so it stays readable at night. */
+  /** The tint for tappable things in the current mood: [colour, strength] or null. */
+  A.ctTint = () => { const t = TINT[A.mood]; return t ? [t[0], t[1] * 0.55] : null; };
   A.ct = function (name) { const t = TINT[A.mood]; const base = A.C[name] || name; return t ? A.mix(base, t[0], t[1] * 0.55) : base; };
   A.moodFor = function (d) { const q = new URLSearchParams(location.search).get('time'); if (q) return q; const h = (d || new Date()).getHours() + (d || new Date()).getMinutes() / 60; return h >= 6.5 && h < 17.5 ? 'day' : h >= 17.5 && h < 19.5 ? 'dusk' : 'night'; };
 

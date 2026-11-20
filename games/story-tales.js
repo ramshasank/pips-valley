@@ -36,8 +36,8 @@
   tale({
     id: 'star', title: 'Little Lost Star', voice: 'story-star', color: '#4A4A8C', sky: '#2B3466', vars: { friend: ['owl', 'cat', 'panda'] },
     art: { dir: 'img/star', horizon: 0.53, flat: ['space'], sky: ['star'],
-      names: ['star', 'star-happy', 'star-sad', 'star-wink', 'ministar', 'pip', 'pip-happy', 'pip-oh', 'owl', 'cat', 'panda', 'house', 'rocket', 'rocket-riders', 'cloud', 'bg-night', 'bg-space', 'moon', 'bunny=bobo/bunny'],
-      h: { star: 138, pip: 168, owl: 170, cat: 190, panda: 190, bunny: 200 },
+      names: ['star', 'star-happy', 'star-sad', 'star-wink', 'ministar', 'owl', 'cat', 'panda', 'house', 'rocket', 'rocket-riders', 'cloud', 'bg-night', 'bg-space', 'moon', 'bunny=bobo/bunny'],
+      h: { star: 138, owl: 170, cat: 190, panda: 190, bunny: 200 },
       props: { house: [340, 0, 10], cloud: [230, 0, 70] },
       custom: {
         rocket(g, n, t, pics) {
@@ -52,7 +52,7 @@
           g.globalAlpha *= 0.4 + 0.6 * gl; g.drawImage(im, -w / 2, -h / 2, w, h); g.restore();
         } },
       cover(g, p) { coverBg(g, p['bg-night']); const gr = g.createRadialGradient(0, -86, 10, 0, -86, 95); gr.addColorStop(0, 'rgba(255,236,160,.6)'); gr.addColorStop(1, 'rgba(255,236,160,0)'); g.fillStyle = gr; g.beginPath(); g.arc(0, -86, 95, 0, 7); g.fill(); coverPic(g, p.star, 0, -28, 118); },
-      actors: (kind) => kind },
+      actors: (kind) => (kind === 'pip' ? null : kind) },    // Pip has his own pictures, the same in every toy
     extra: ['Bump!', 'Whoosh!', 'She said, "Thank you, Pip!"', 'three', 'two', 'one'],
     cover(g, s) { for (const [x, y, r] of [[-60, -150, 3], [50, -120, 2.5], [-30, -90, 2], [70, -160, 3], [10, -165, 2]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = '#FFF6DA'; g.fill(); } g.translate(0, 0); g.scale(0.95, 0.95); St.star(g, s, { glow: 1 }, 0); },
     pages: [

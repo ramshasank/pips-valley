@@ -27,10 +27,44 @@
     A.line(g, A.shade(color, -0.12), 2, (h) => { h.moveTo(0, -3); h.quadraticCurveTo(wid * 0.15, -len * 0.5, 0, -len * 0.85); });
     g.restore();
   }
+  /* Pip from pictures (img/pip). Used as soon as every picture has arrived; until then, and wherever the
+     pictures are missing (the single-file build), Pip is drawn from paper shapes as before.
+     Each entry: where the middle of his face is across the picture, and for the calm faces his eyes
+     [x, y, rx, ry, lid colour] as fractions of the picture, so he can blink. */
+  const PIP_PICS = {
+    pip: { cx: 0.512, eyes: [[0.356, 0.46, 0.069, 0.061, '#FEAA52'], [0.668, 0.46, 0.069, 0.061, '#F68029']] },
+    'pip-wave': { cx: 0.451, eyes: [[0.326, 0.456, 0.065, 0.073, '#FCAD53'], [0.576, 0.457, 0.067, 0.074, '#FF8A2E']] },
+    'pip-happy': { cx: 0.495 }, 'pip-oh': { cx: 0.489 },
+  };
+  const pipIm = {}, pipTinted = new Map(); let pipReady = false;
+  (function () { let left = Object.keys(PIP_PICS).length; for (const nm in PIP_PICS) { const im = new Image(); im.onload = () => { pipIm[nm] = im; if (--left === 0) pipReady = true; }; im.src = 'img/pip/' + nm + '.webp'; } })();
+  /** The picture for this mood: at night the valley's tint is laid over it, once, and kept. */
+  function pipPic(nm) {
+    const key = nm + '|' + A.mood; let c = pipTinted.get(key); if (c) return c;
+    const im = pipIm[nm], k = Math.min(1, 640 / im.height); c = document.createElement('canvas'); c.width = Math.round(im.width * k); c.height = Math.round(im.height * k);
+    const x = c.getContext('2d'); x.drawImage(im, 0, 0, c.width, c.height);
+    const t = A.ctTint(); if (t) { x.globalCompositeOperation = 'source-atop'; x.globalAlpha = t[1]; x.fillStyle = t[0]; x.fillRect(0, 0, c.width, c.height); }
+    pipTinted.set(key, c); return c;
+  }
+  function pipFromPics(g, st) {
+    const sq = st.squash || 0, H = 172;
+    groundShadow(g, 54 * (1 + Math.max(0, -sq) * 0.6), 0);
+    g.save(); g.scale(1 - sq * 0.5, 1 + sq); g.rotate((st.look || 0) * 0.05 + (st.leaf || 0) * 0.15);
+    const nm = st.mouth === 'open' ? 'pip-happy' : st.mouth === 'oh' ? 'pip-oh' : (st.wave || 0) > 0.5 ? 'pip-wave' : 'pip', P = PIP_PICS[nm], c = pipPic(nm), w = H * c.width / c.height;
+    const x0 = -w * P.cx, y0 = 5 - H;
+    g.drawImage(c, x0, y0, w, H);
+    if (st.blink > 0.5 && P.eyes) for (const [ex, ey, rx, ry, col] of P.eyes) {
+      const x = x0 + ex * w, y = y0 + ey * H, a = rx * w * 1.25, b = ry * H * 1.25;
+      g.beginPath(); g.ellipse(x, y, a, b, 0, 0, Math.PI * 2); g.fillStyle = A.ct(col); g.fill();
+      A.line(g, A.C.ink, 3.5, (h) => { h.moveTo(x - a * 0.8, y); h.quadraticCurveTo(x, y + b * 0.7, x + a * 0.8, y); });
+    }
+    g.restore();
+  }
   /** Pip, about 150 units tall, feet at (0,0).
       st: {blink, squash (+ stretches tall), look (-1..1), mouth: 'smile'|'open'|'oh', leaf (sway radians), wave} */
   A.pip = function (g, s, st) {
     st = st || {};
+    if (pipReady) return pipFromPics(g, st);
     const sq = st.squash || 0;
     groundShadow(g, 54 * (1 + Math.max(0, -sq) * 0.6), 0);
     g.save(); g.scale(1 - sq * 0.5, 1 + sq);
