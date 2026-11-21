@@ -33,9 +33,9 @@
      K.s is the live view activities use: {name, avatar, level, stickers, done} of the current child
      plus the device settings {voice, sound, voiceName}. */
   const STORE = 'pips-playhouse.v1';
-  const dev = { voice: true, sound: true, voiceName: '', profiles: [], current: null };
+  const dev = { voice: true, sound: true, voiceName: '', voiceStyle: 'playful', profiles: [], current: null };
   K.s = { name: '', avatar: '🦁', level: 1, stickers: [], done: {}, voice: true, sound: true, voiceName: '' };
-  const KID = ['name', 'avatar', 'level', 'stickers', 'done'], DEV = ['voice', 'sound', 'voiceName'];
+  const KID = ['name', 'avatar', 'level', 'stickers', 'done'], DEV = ['voice', 'sound', 'voiceName', 'voiceStyle'];
   try {
     const raw = JSON.parse(localStorage.getItem(STORE) || '{}');
     if (Array.isArray(raw.profiles)) Object.assign(dev, raw);
@@ -51,14 +51,14 @@
   K.save = function () {
     const pr = curProfile(); if (pr) KID.forEach((k) => (pr[k] = K.s[k]));
     DEV.forEach((k) => (dev[k] = K.s[k]));
-    try { localStorage.setItem(STORE, JSON.stringify(dev)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(STORE, JSON.stringify(dev)); return true; } catch (e) { return false; }
   };
   K.players = {
     list: () => dev.profiles.slice(),
     current: curProfile,
-    add(p) { const pr = { id: 'p' + Date.now().toString(36), name: (p.name || '').trim(), avatar: p.avatar || '🦁', level: p.level || 1, stickers: [], done: {} }; K.save(); dev.profiles.push(pr); K.s.stickers = []; K.s.done = {}; activate(pr); K.save(); return pr; },
+    add(p) { let id = 'p' + Date.now().toString(36); while (dev.profiles.some((pr) => pr.id === id)) id += 'x'; const pr = { id, name: (p.name || '').trim(), avatar: p.avatar || '🦁', level: p.level || 1, stickers: [], done: {} }; K.save(); dev.profiles.push(pr); K.s.stickers = []; K.s.done = {}; activate(pr); K.save(); return pr; },
     use(id) { K.save(); const pr = dev.profiles.find((x) => x.id === id); if (pr) { K.s.stickers = []; K.s.done = {}; activate(pr); K.save(); } return pr; },
-    remove(id) { dev.profiles = dev.profiles.filter((x) => x.id !== id); if (dev.current === id) { dev.current = null; const n = dev.profiles[0]; if (n) activate(n); } K.save(); },
+    remove(id) { if (K.artwork) K.artwork.removePlayer(id); dev.profiles = dev.profiles.filter((x) => x.id !== id); if (dev.current === id) { dev.current = null; const n = dev.profiles[0]; if (n) activate(n); } K.save(); },
   };
   /** Difficulty band: 1 = age 3, 2 = ages 4-5, 3 = ages 6-8. */
   K.level = () => K.s.level || 1;
@@ -198,13 +198,24 @@
   };
   function chooseVoice() { const vs = K.voices(); if (vs.length) voice = vs[0]; }
   if (synth) { chooseVoice(); try { synth.addEventListener('voiceschanged', chooseVoice); } catch (e) { /* older browsers */ } }
-  let sayToken = 0;
+  let sayToken = 0, speaking = false;
+  K.isSpeaking = () => speaking;
+  // Keep character changes subtle. Device speech is a fallback, never a caricature.
+  K.speechStyle = function (text, opts) {
+    opts = opts || {};
+    const gentle = K.s.voiceStyle === 'gentle', cheer = /!\s*$/.test(text) && text.length < 100;
+    return {
+      rate: opts.rate == null ? (gentle ? 0.86 : cheer ? 0.98 : 0.93) : opts.rate,
+      pitch: opts.pitch == null ? (opts.who === 'monster' ? 0.9 : gentle ? 1 : cheer ? 1.1 : 1.04) : opts.pitch,
+      gap: opts.gap == null ? (gentle ? 340 : /[?]\s*$/.test(text) ? 280 : 180) : opts.gap,
+    };
+  };
 
   /* ----- recorded voice -----
      web/voice/index.json maps a normalised sentence to [bundleId, byteOffset, byteLength];
      web/voice/<bundleId>.mp3 is those mp3 clips back to back. Built by tools/voice.py with a
      neural voice. Any line without a recording falls back to the device's own speech engine. */
-  let clipIdx = null, curSrc = null;
+  let clipIdx = null, curSrc = null, bundleIds = null;
   const bundles = {}, decoded = new Map();
   K.voiceKey = (t) => String(t).toLowerCase().replace(/[’`]/g, "'").replace(/[^a-z0-9' ]+/g, ' ').replace(/\s+/g, ' ').trim();
   const sentences = (t) => (String(t).match(/[^.!?…]+[.!?…]*/g) || []).map((x) => x.trim()).filter((x) => K.voiceKey(x));
@@ -212,20 +223,19 @@
   const vstat = { state: 'loading', clips: 0, recorded: 0, device: 0, problem: '' };
   K.voiceStatus = () => Object.assign({}, vstat);
   function loadBundle(id) {
-    if (!bundles[id]) bundles[id] = fetch('voice/' + id + '.mp3' + (window.VOICE_V ? '?v=' + window.VOICE_V : '')).then((r) => { if (r.ok) return r.arrayBuffer(); vstat.problem = `recording file "${id}" answered ${r.status}`; return null; }).catch((e) => { vstat.problem = `recording file "${id}" could not be fetched (${e && e.message})`; return null; });
+    if (!bundles[id]) bundles[id] = fetch('voice/' + id + '.mp3' + (window.VOICE_V ? '?v=' + window.VOICE_V : '')).then((r) => { if (r.ok) return r.arrayBuffer(); vstat.problem = `recording file "${id}" answered ${r.status}`; return null; }).catch(() => { vstat.problem = `recording file "${id}" could not be fetched`; return null; }).then((buf) => { if (!buf) delete bundles[id]; return buf; });
     return bundles[id];
   }
   K.loadVoice = function () {
     if (location.protocol === 'file:') { vstat.state = 'missing'; vstat.problem = 'opened as a local file'; return Promise.resolve(); } // recordings need http(s)
     try {
       return fetch('voice/index.json' + (window.VOICE_V ? '?v=' + window.VOICE_V : '')).then((r) => { if (r.ok) return r.json(); vstat.problem = 'recording list answered ' + r.status; return null; })
-        .then((j) => { clipIdx = j; vstat.state = j ? 'ready' : 'missing'; if (j) { vstat.clips = Object.keys(j).length; loadBundle('core'); } })
+        .then((j) => { clipIdx = j; bundleIds = null; vstat.state = j ? 'ready' : 'missing'; if (j) { vstat.clips = Object.keys(j).length; K.preloadVoice('core'); } })
         .catch((e) => { vstat.state = 'missing'; vstat.problem = 'recording list could not be fetched (' + (e && e.message) + ')'; });
     } catch (e) { vstat.state = 'missing'; vstat.problem = String(e && e.message); return Promise.resolve(); }
   };
   /** Start fetching the recordings an activity needs (called automatically by K.go). */
-  let bundleIds = null;
-  K.preloadVoice = (id) => { if (!clipIdx) return; if (!bundleIds) bundleIds = new Set(Object.values(clipIdx).map((r) => r[0])); if (bundleIds.has(id)) loadBundle(id); };
+  K.preloadVoice = (id) => { if (!clipIdx) return; if (!bundleIds) bundleIds = new Set(Object.values(clipIdx).map((r) => r[0])); for (const bundle of bundleIds) if (bundle === id || bundle.startsWith(id + '-')) loadBundle(bundle); };
   function clipPlan(text, who) {
     if (!clipIdx) return null;
     // A whole line recorded in one take sounds most natural; use it when it exists.
@@ -249,8 +259,10 @@
   /** Play recorded clips in order. Resolves true when finished, false if a clip was unavailable. */
   function playClips(plan, token, opts, fullText) {
     const a = audio(); if (!a) return Promise.resolve(false);
-    const timeout = new Promise((res) => setTimeout(() => res('slow'), 6000));
+    let timeoutId;
+    const timeout = new Promise((res) => { timeoutId = setTimeout(() => res('slow'), 6000); });
     return Promise.race([Promise.all(plan.map((it) => clipBuffer(a, it))), timeout]).then((bufs) => {
+      clearTimeout(timeoutId);
       if (token !== sayToken) return true;
       if (bufs === 'slow') { vstat.problem = 'recordings took more than 6 seconds to load'; return false; }
       if (!bufs || bufs.some((x) => !x)) { if (!vstat.problem) vstat.problem = 'a recording could not be decoded on this device'; return false; }
@@ -272,7 +284,7 @@
         src._done = () => { timers.forEach(clearTimeout); if (curSrc === src) curSrc = null; res(); };
         src.onended = src._done;
         src.start();
-      }).then(() => (i + 1 < bufs.length && token === sayToken ? new Promise((r) => setTimeout(r, opts.gap == null ? 560 : opts.gap)).then(() => playOne(i + 1)) : undefined));
+      }).then(() => (i + 1 < bufs.length && token === sayToken ? new Promise((r) => setTimeout(r, K.speechStyle(plan[i].text, opts).gap)).then(() => playOne(i + 1)) : undefined));
       return playOne(0).then(() => true);
     });
   }
@@ -288,10 +300,11 @@
         const u = new SpeechSynthesisUtterance(text);
         if (voice) u.voice = voice;
         u.lang = (voice && voice.lang) || 'en-US';
-        u.rate = opts.rate || 0.92; u.pitch = opts.pitch || 1.04;
+        const style = K.speechStyle(text, opts);
+        u.rate = style.rate; u.pitch = style.pitch;
         if (opts.onword) u.onboundary = (e) => { if (token === sayToken) opts.onword(e.charIndex, e.charLength || 0); };
         u.onend = fin; u.onerror = fin;
-        setTimeout(() => { try { synth.speak(u); } catch (e) { fin(); } }, opts.interrupt === false ? 0 : 40);
+        setTimeout(() => { if (token !== sayToken) return fin(); try { synth.speak(u); } catch (e) { fin(); } }, opts.interrupt === false ? 0 : 40);
       } catch (e) { fin(); }
       setTimeout(fin, est + 2500);
     });
@@ -302,17 +315,20 @@
   K.say = function (text, opts) {
     opts = opts || {};
     text = String(text || '');
+    if (opts.idle && speaking) return Promise.resolve();
     const token = ++sayToken;
+    if (opts.interrupt !== false) { stopClip(); try { synth && synth.cancel(); } catch (e) { /* optional */ } }
+    speaking = false;
     if (!K.s.voice || !text) return new Promise((r) => setTimeout(r, 50));
-    if (opts.interrupt !== false) stopClip();
+    speaking = true;
     const plan = clipPlan(text, opts.who);
-    if (plan) return playClips(plan, token, opts, text).then((ok) => { if (ok || token !== sayToken) return undefined; vstat.device++; return tts(text, opts, token); });
-    vstat.device++;
-    return tts(text, opts, token);
+    const finish = () => { if (token === sayToken) speaking = false; };
+    const playback = plan ? playClips(plan, token, opts, text).then((ok) => { if (ok || token !== sayToken) return; vstat.device++; return tts(text, opts, token); }) : (vstat.device++, tts(text, opts, token));
+    return playback.then(finish, () => { vstat.problem = 'Speech playback was interrupted'; finish(); });
   };
-  K.hush = () => { sayToken++; stopClip(); try { synth && synth.cancel(); } catch (e) { /* ignore */ } };
-  /** True when every sentence of `text` has a recording (or there are no recordings at all). */
-  K.hasClip = (text, who) => !clipIdx || !!clipPlan(text, who);
+  K.hush = () => { sayToken++; speaking = false; stopClip(); try { synth && synth.cancel(); } catch (e) { /* ignore */ } };
+  /** True only when every sentence has a recording. Unknown names never go to device speech. */
+  K.hasClip = (text, who) => !!clipPlan(text, who);
   /** Say the first candidate that is fully recorded, so one voice is used for the whole line. */
   K.sayBest = function (candidates) { return K.say(candidates.find((t) => K.hasClip(t)) || candidates[candidates.length - 1]); };
   /** Every line the core itself can speak — used by tools/collect-lines.js to pre-record them. */
@@ -463,6 +479,7 @@
   const stage = () => document.getElementById('stage');
   let current = null; // {cleanups:[], alive:true}
   function teardown() {
+    K.navigation = (K.navigation || 0) + 1;
     K.hush();
     if (current) { current.alive = false; for (const fn of current.cleanups) { try { fn(); } catch (e) { console.error(e); } } current = null; }
     const ov = document.getElementById('overlay'); if (ov) ov.replaceChildren();
@@ -508,7 +525,7 @@
     ]);
     stage().append(K.el('div.act', null, [bar, body]));
     let idle = null;
-    const armIdle = () => { clearTimeout(idle); idle = setTimeout(() => { if (ctx.alive && promptText) { K.say(promptText, { who: promptWho }); armIdle(); } }, 14000); };
+    const armIdle = () => { clearTimeout(idle); idle = setTimeout(() => { if (ctx.alive && promptText) { K.say(promptText, { who: promptWho, idle: true }); armIdle(); } }, 22000); };
     const poke = () => armIdle();
     body.addEventListener('pointerdown', poke); body.addEventListener('pointermove', poke); body.addEventListener('pointerup', poke);
     ctx._poke = () => { if (idle) armIdle(); };
@@ -637,9 +654,12 @@
         })(),
         K.el('label', null, [document.createTextNode('Players'), K.el('button.soft-btn', { type: 'button', text: 'Add or change players', onclick: () => K.who(true) }),
           K.el('span.hint', { text: 'Each child gets their own progress and age band. Nothing leaves this device.' })]),
+        K.artwork && K.artwork.status() ? K.el('p', { role: 'status', text: K.artwork.status() }) : null,
         K.el('label', null, [document.createTextNode('Age band for ' + (K.s.name || 'this player')), seg('level', [[1, 'Age 3'], [2, 'Ages 4–5'], [3, 'Ages 6–8']]),
           K.el('span.hint', { text: 'Changes how much help the games give and how hard the little challenges get.' })]),
         K.el('label', null, [document.createTextNode('Talking voice'), seg('voice', [[true, 'On'], [false, 'Off']])]),
+        K.el('label', null, [document.createTextNode('Voice delivery'), seg('voiceStyle', [['playful', 'Playful'], ['gentle', 'Gentle']]), K.el('span.hint', { text: 'Changes sentence pauses and the backup voice. Recorded characters keep their original voice.' })]),
+        K.el('span.hint', { text: 'Pip’s recorded voice is AI generated. The app does not record your child or send their name for narration. Missing recordings use your device’s speech voice.' }),
         K.el('label', null, [document.createTextNode('Sound effects'), seg('sound', [[true, 'On'], [false, 'Off']])]),
         (function () {
           const vs = K.voices(); if (!vs.length) return null;
@@ -652,7 +672,7 @@
         })(),
         K.el('button.soft-btn', { type: 'button', text: 'Test the voice', onclick: () => K.say('Hello! I am Pip. Can you hear me?') }),
         K.el('span.hint', { text: 'For a warmer, more human voice: on iPad or iPhone open Settings, Accessibility, Spoken Content, Voices, English, and download an Enhanced or Premium voice; on Android install or update Speech Services by Google. Then choose it above. No sound at all? Check the device is not on silent.' }),
-        K.el('button.quiet', { type: 'button', text: 'Reset progress', onclick: () => { K.s.stickers = []; K.s.done = {}; K.save(); K.parents(); } }),
+        K.el('button.quiet', { type: 'button', text: 'Reset progress', onclick: () => { const p = K.players.current(); if (K.artwork && p) K.artwork.removePlayer(p.id); K.s.stickers = []; K.s.done = {}; K.save(); K.parents(); } }),
       ])),
     ]));
   };

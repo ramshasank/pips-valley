@@ -1,0 +1,13 @@
+{
+  "name": "pips-valley",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Development checks for the dependency-free Pip's Valley app",
+  "scripts": {
+    "test": "node --test tests/*.test.cjs",
+    "test:browser": "playwright test",
+    "build": "python3 build.py",
+    "check": "python3 build.py --check && python3 tools/check_assets.py && npm test"
+  },
+  "devDependencies": { "@playwright/test": "1.65.1" }
+}

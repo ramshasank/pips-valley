@@ -13,6 +13,7 @@
 #app { background: #CFE6E8; }
 .stage-canvas { position: absolute; inset: 0; display: block; }
 .stage-a11y { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.load-card { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(88vw, 420px); padding: 24px; border-radius: 24px; background: #FBF6EC; color: #2E2A3B; box-shadow: 0 10px 50px #2e2a3b44; text-align: center; pointer-events: auto; }
 .stage-a11y .proxy { position: absolute; opacity: 0; pointer-events: none; border-radius: 28px; }
 .stage-a11y .proxy:focus-visible { opacity: 1; outline: 5px solid var(--ink); outline-offset: 2px; background: transparent; }
 
