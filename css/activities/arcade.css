@@ -1,0 +1,24 @@
+/* Game Room: a shelf of game cards grouped by age band. */
+.arcade-shelf { position: absolute; left: 0; right: 0; top: 15%; bottom: 0; overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 4px 4% calc(30px + env(safe-area-inset-bottom, 0px)); z-index: 5; }
+@media (min-width: 900px) { .arcade-shelf { padding-left: 6%; padding-right: 6%; } }
+.arcade-band { display: flex; align-items: baseline; gap: 12px; margin: 18px 4px 12px; color: #2E2A3B; }
+.arcade-band b { font-size: 24px; font-weight: 800; padding: 4px 16px 6px; border-radius: 999px; color: #FBF6EC; background: #2F8F8A; box-shadow: 0 4px 0 rgba(46, 42, 59, .22); }
+.arcade-band.arcade-age5 b { background: #E8664A; }
+.arcade-band.arcade-age7 b { background: #6E4E7E; }
+.arcade-band span { font-size: 16px; font-weight: 700; opacity: .7; }
+.arcade-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 16px; }
+@media (min-width: 900px) { .arcade-row { grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 24px; } }
+.arcade-card { position: relative; border: 0; padding: 7px 7px 0; margin: 0; background: #FBF6EC; border-radius: 20px; cursor: pointer; font: inherit; color: #2E2A3B;
+  box-shadow: 0 6px 0 rgba(46, 42, 59, .22), 0 10px 22px rgba(46, 42, 59, .18); transition: transform .12s ease; -webkit-tap-highlight-color: transparent; }
+.arcade-card:active { transform: scale(.96) translateY(3px); }
+.arcade-card canvas { display: block; width: 100%; aspect-ratio: 1; border-radius: 14px; background: #CFE6E8; }
+.arcade-card span { display: block; padding: 8px 4px 10px; font-weight: 800; font-size: 16px; line-height: 1.15; text-align: center; }
+.arcade-card::after { content: ''; position: absolute; left: 14px; top: 14px; width: 16px; height: 16px; border-radius: 50%; background: #2F8F8A; box-shadow: 0 0 0 4px #FBF6EC; }
+.arcade-card.arcade-age5::after { background: #E8664A; }
+.arcade-card.arcade-age7::after { background: #6E4E7E; }
+
+.arcade-chips { display: flex; flex-wrap: wrap; gap: 10px; margin: 6px 2px 4px; }
+.arcade-chip { border: 0; margin: 0; padding: 10px 18px 12px; border-radius: 999px; font: inherit; font-weight: 800; font-size: 17px; color: #2E2A3B; background: #FBF6EC; cursor: pointer; min-height: 48px;
+  box-shadow: 0 4px 0 rgba(46, 42, 59, .2); -webkit-tap-highlight-color: transparent; }
+.arcade-chip.on { color: #FBF6EC; background: #2E2A3B; }
+.arcade-card[hidden], .arcade-row[hidden], .arcade-band[hidden] { display: none; }

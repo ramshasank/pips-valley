@@ -45,7 +45,7 @@
       g.beginPath(); A.cut(g, [[-30, -4], [0, -30], [30, -4]], 5, 0.5, 3); g.fillStyle = A.C.tomato; g.fill();
       g.beginPath(); A.rect(g, -7, 6, 14, 18, 3, 4, 0); g.fillStyle = A.C.teal; g.fill();
     };
-    home.onTap = () => { K.sfx.tap(); K.home(); };
+    home.onTap = () => { K.sfx.tap(); if (def.group === 'arcade') K.go('arcade'); else K.home(); }; // a Game Room game goes back to its shelf
     const again = st.add({ ui: true, z: 100, x: st.W - 78, y: 78, label: 'Say it again', hitR: 52 });
     again.draw = (g, s) => {
       disc(g, s, 48);
@@ -57,10 +57,17 @@
     cap.draw = (g, s) => {
       if (!caption) return;
       g.font = `700 ${st.W < 900 ? 26 : 32}px ${A.FONT_BODY}`; g.textAlign = 'center'; g.textBaseline = 'middle';
-      const max = st.W - 300; let t = caption; while (g.measureText(t).width > max && t.length > 8) t = t.slice(0, -2); if (t !== caption) t += '…';
-      const w = g.measureText(t).width + 56;
-      g.beginPath(); A.rect(g, -w / 2, -28, w, 56, 28, 6, 0.6); A.paper(g, s, A.alpha('#FBF6EC', 0.92), { shadow: 0.6, light: 0, grain: 0.12 });
-      g.fillStyle = A.C.ink; g.fillText(t, 0, 2);
+      const max = st.W - 300, words = caption.split(' ');
+      let rows = [caption];
+      if (g.measureText(caption).width > max) {                  // a long ask wraps onto two rows instead of being cut short
+        let best = 1, bw = 1e9;
+        for (let i = 1; i < words.length; i++) { const w = Math.max(g.measureText(words.slice(0, i).join(' ')).width, g.measureText(words.slice(i).join(' ')).width); if (w < bw) { bw = w; best = i; } }
+        rows = [words.slice(0, best).join(' '), words.slice(best).join(' ')];
+        if (bw > max) { const f = Math.max(17, Math.floor((st.W < 900 ? 26 : 32) * max / bw)); g.font = `700 ${f}px ${A.FONT_BODY}`; }
+      }
+      const lh = rows.length > 1 ? 32 : 0, w = Math.max(...rows.map((r) => g.measureText(r).width)) + 56, h = 56 + lh;
+      g.beginPath(); A.rect(g, -w / 2, -28, w, h, 28, 6, 0.6); A.paper(g, s, A.alpha('#FBF6EC', 0.92), { shadow: 0.6, light: 0, grain: 0.12 });
+      g.fillStyle = A.C.ink; rows.forEach((r, i) => g.fillText(r, 0, 2 + i * lh));
     };
     st.onresize = () => { again.x = st.W - 78; cap.x = st.W / 2; if (def.resize) def.resize(st, ctx); };
 

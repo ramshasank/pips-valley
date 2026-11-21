@@ -21,6 +21,17 @@ Pip lives in a little valley. Each place in the valley is a toy:
 | Story Studio | Act out three picture books with taps, swipes and holds |
 | Pip's Town | Drive a delivery van along the street |
 | Story Time | Watch 22 short narrated story films about sharing, trying again, telling the truth and bedtime |
+| Game Room | 32 small games in the red barn, for ages 3 to 8 (see below) |
+
+### The Game Room
+
+The barn holds 32 games you can browse by age and by subject. Each has three levels that follow the player's age band and gets a little harder as the child succeeds. The learning is the play itself: children share out a pizza, hop a frog along a number line, pay with coins, pour paint.
+
+| Age | Maths | Words | Thinking and memory | Science and feelings | Music, coding, fun |
+|---|---|---|---|---|---|
+| 3 and up | Shape Sorter, Count the Eggs, Big and Small | | Hide and Seek, Tidy Up | Colour Mixer, Happy or Sad? | Bubble Pop, Peek-a-Boo Garden |
+| 5 and up | Number Rocket, Pattern Train, Dot to Dot, Make Ten, Frog Hops, Pip's Shop | Word Builder, First Sounds, Rhyme Time | Odd One Out, Jigsaw, Memory Match | Sink or Float | Copy the Tune |
+| 7 and up | Tick Tock Clock, Number Blocks, Times Garden, Pizza Party | Build a Sentence | Picture Sudoku, Maze Run, Treasure Map | | Robot Path |
 
 Nobody can lose. There are no timers and no scores. If a child is stuck, a paper hand shows the move.
 

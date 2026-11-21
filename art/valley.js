@@ -316,6 +316,13 @@
     piece(g, s, ct('tomato'), (p) => { p.moveTo(-118, -220); for (let i = 0; i < 6; i++) { const x0 = -118 + i * 39.3; p.quadraticCurveTo(x0 + 19.6, -188, x0 + 39.3, -220); } p.lineTo(118, -246); p.lineTo(-118, -246); p.closePath(); }, { shadow: 0.7, box: { x: -118, y: -246, w: 236, h: 40 } });
     piece(g, s, ct('marigold'), (p) => A.rect(p, -122, -252, 244, 12, 5, 9), { shadow: 0.4, grain: 0.1 });
   };
+  /** Game Room: a little sign of play pieces hung over the barn door (the barn itself is scenery). */
+  V.toys.gamesSign = function (g, s) {
+    piece(g, s, ct('#FBF6EC'), (p) => A.rect(p, -72, -240, 144, 62, 14, 5, 0.5), { shadow: 0.7, box: { x: -72, y: -240, w: 144, h: 62 } });
+    piece(g, s, ct('tomato'), (p) => p.arc(-42, -209, 17, 0, 7), { shadow: 0.3, grain: 0.1 });
+    piece(g, s, ct('teal'), (p) => A.rect(p, -16, -225, 32, 32, 6, 3, 0.4), { shadow: 0.3, grain: 0.1 });
+    piece(g, s, ct('marigold'), (p) => { for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, r = i % 2 ? 9 : 20; const x = 42 + Math.cos(a) * r, y = -208 + Math.sin(a) * r; if (i) p.lineTo(x, y); else p.moveTo(x, y); } p.closePath(); }, { shadow: 0.3, grain: 0.1 });
+  };
   V.toys.easel = function (g, s) {
     const wood = ct('wood');
     A.line(g, A.shade(wood, -0.1), 10, (p) => { p.moveTo(0, -250); p.lineTo(0, 0); });

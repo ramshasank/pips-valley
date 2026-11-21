@@ -16,6 +16,7 @@
     { key: 'kitchen', title: 'Monster Kitchen', x: 1960, legacy: 'kitchen', box: [-150, -336, 300, 338] },
     { key: 'car', title: "Pip's Town", x: 2730, id: 'town', legacy: 'vroom', box: [-130, -200, 330, 202] },
     { key: 'band', title: 'Animal Band', x: 3040, id: 'band', legacy: 'music', box: [-126, -170, 340, 172] },
+    { key: 'barn', title: 'Game Room', x: 3360, id: 'arcade', legacy: 'arcade', box: [-150, -400, 300, 400] },
     { key: 'easel', title: 'Paint Studio', x: 3790, legacy: 'paint', box: [-134, -266, 270, 268] },
   ];
   const WIDE_SPOTS = [590, 1480, 2200, 2860, 3480]; // where the camera settles on a wide screen
@@ -218,6 +219,7 @@
       if (t.key === 'car') { n.car = sp('car', V.toys.car, [-110, -200, 320, 202]); }
       if (t.key === 'band') sp('band', V.toys.band, [-126, -170, 340, 172]);
       if (t.key === 'cinema') sp('cinema', V.toys.cinema, [-130, -262, 260, 264]);
+      if (t.key === 'barn') sp('gamesSign', V.toys.gamesSign, [-80, -250, 160, 80]);
       if (t.key === 'easel') sp('easel', V.toys.easel, [-150, -266, 290, 268]);
       if (t.key === 'letters') {
         sp('chalk', V.toys.chalkboard, [-100, -240, 200, 242]);
