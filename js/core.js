@@ -74,10 +74,35 @@
 
   /* ---------------- sound effects (WebAudio synth, no files) ---------------- */
   let ac = null;
+  let keepAlive = null, voiceOut = null;
+  /** iPhones mute WebAudio when the ring/silent switch is on silent. A silent, looping <audio>
+      element switches the page to media playback, which the switch does not mute. */
+  function unmuteForSilentSwitch() {
+    if (keepAlive) { if (keepAlive.paused) keepAlive.play().catch(() => {}); return; }
+    try {
+      const rate = 8000, n = rate / 2, buf = new ArrayBuffer(44 + n), v = new DataView(buf);
+      const put = (o, str) => { for (let i = 0; i < str.length; i++) v.setUint8(o + i, str.charCodeAt(i)); };
+      put(0, 'RIFF'); v.setUint32(4, 36 + n, true); put(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+      v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); put(36, 'data'); v.setUint32(40, n, true);
+      for (let i = 0; i < n; i++) v.setUint8(44 + i, 128);
+      keepAlive = new Audio(URL.createObjectURL(new Blob([buf], { type: 'audio/wav' })));
+      keepAlive.loop = true; keepAlive.setAttribute('playsinline', ''); keepAlive.play().catch(() => {});
+    } catch (e) { /* not essential */ }
+  }
   function audio() {
     if (!ac) { const C = window.AudioContext || window.webkitAudioContext; if (C) ac = new C(); }
-    if (ac && ac.state === 'suspended') ac.resume();
+    if (ac && ac.state !== 'running') ac.resume().catch(() => {});
     return ac;
+  }
+  /** Where recorded speech is sent: boosted and gently limited so it carries on a phone speaker. */
+  function voiceBus(a) {
+    if (voiceOut) return voiceOut;
+    try {
+      const g = a.createGain(); g.gain.value = 2.6;
+      const c = a.createDynamicsCompressor(); c.threshold.value = -9; c.knee.value = 8; c.ratio.value = 8; c.attack.value = 0.003; c.release.value = 0.2;
+      g.connect(c).connect(a.destination); voiceOut = g;
+    } catch (e) { voiceOut = a.destination; }
+    return voiceOut;
   }
   function tone(freq, dur, opts) {
     if (!K.s.sound) return; const a = audio(); if (!a) return;
@@ -212,7 +237,7 @@
       let searchFrom = 0;
       const playOne = (i) => new Promise((res) => {
         if (token !== sayToken || i >= bufs.length) return res();
-        const src = a.createBufferSource(); src.buffer = bufs[i]; src.connect(a.destination); curSrc = src;
+        const src = a.createBufferSource(); src.buffer = bufs[i]; src.connect(voiceBus(a)); curSrc = src;
         const timers = [];
         if (opts.onword) { // approximate word timing so read-along highlighting follows the recording
           const base = fullText.indexOf(plan[i].text, searchFrom); searchFrom = base < 0 ? searchFrom : base + plan[i].text.length;
@@ -224,7 +249,7 @@
         src._done = () => { timers.forEach(clearTimeout); if (curSrc === src) curSrc = null; res(); };
         src.onended = src._done;
         src.start();
-      }).then(() => (i + 1 < bufs.length && token === sayToken ? new Promise((r) => setTimeout(r, opts.gap == null ? 380 : opts.gap)).then(() => playOne(i + 1)) : undefined));
+      }).then(() => (i + 1 < bufs.length && token === sayToken ? new Promise((r) => setTimeout(r, opts.gap == null ? 560 : opts.gap)).then(() => playOne(i + 1)) : undefined));
       return playOne(0).then(() => true);
     });
   }
@@ -579,7 +604,7 @@
           const v = K.voiceStatus();
           const head = v.state === 'ready' ? `Recorded voice: loaded (${v.clips} lines).` : v.state === 'loading' ? 'Recorded voice: still loading…' : 'Recorded voice: NOT loaded — this device\'s built-in voice is being used instead.';
           const use = `Since opening: ${v.recorded} lines spoken with the recorded voice, ${v.device} with the device voice.`;
-          return K.el('label', null, [document.createTextNode('Voice check'),
+          return K.el('label', null, [document.createTextNode('Voice check  ·  version ' + (window.BUILD || 'dev')),
             K.el('span.hint', { style: { opacity: '1', fontWeight: '700', color: v.state === 'ready' && !v.device ? '#2F7D5B' : '#C2473D' }, text: head }),
             K.el('span.hint', { text: use + (v.problem ? ' Last problem: ' + v.problem + '.' : '') }),
             K.el('div.seg', null, [
@@ -690,12 +715,13 @@
     K.loadVoice();
     fx = document.getElementById('fx'); fxc = fx.getContext('2d'); fxSize(); addEventListener('resize', fxSize);
     // No pinch-zoom, context menus, or rubber-banding while small hands explore.
+    document.addEventListener('pointerdown', () => { if (ac) { unmuteForSilentSwitch(); audio(); } }, true); // re-arm sound after the app was backgrounded
     document.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('gesturestart', (e) => e.preventDefault());
     document.addEventListener('dblclick', (e) => e.preventDefault());
     const clouds = [K.el('div.cloud.emoji', { text: '☁️', style: { top: '6%', animationDelay: '-8s' } }), K.el('div.cloud.emoji', { text: '☁️', style: { top: '24%', animationDelay: '-27s', fontSize: '9vmin' } })];
     const go = () => {
-      audio(); K.sfx.tada();
+      unmuteForSilentSwitch(); audio(); K.sfx.tada();
       try { if (navigator.wakeLock) navigator.wakeLock.request('screen').catch(() => {}); } catch (e) { /* optional */ }
       // Automated browser tests skip the grown-up setup form.
       if (!K.players.list().length && navigator.webdriver && !window.__realSetup) K.players.add({ name: '', avatar: '🦁', level: K.s.level });
@@ -707,6 +733,7 @@
       ...clouds,
       K.el('div.float', null, K.pip(Math.min(innerWidth, innerHeight) * 0.34)),
       K.el('h1', { text: "Pip's Valley" }),
+      K.el('div', { text: 'Version ' + (window.BUILD || 'dev'), style: { position: 'absolute', bottom: 'calc(8px + env(safe-area-inset-bottom, 0px))', left: '0', right: '0', textAlign: 'center', color: '#fff', opacity: '.85', fontWeight: '700', fontSize: '14px' } }),
       K.el('button.big-btn.pulse', { text: '▶ Play', onclick: go }),
     ]);
     K.boot2();

@@ -5,7 +5,7 @@ Outputs:
   web/index.html          full document that links css/js (GitHub Pages, local dev)
   web/dist/playhouse.html single self-contained page body (inlined css/js) for hosting as one file
 """
-import base64, glob, os, re
+import base64, glob, os, re, subprocess, datetime
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 CSS = ["css/core.css", "css/shell.css"] + sorted(p[len(ROOT) + 1:] for p in glob.glob(ROOT + "/css/activities/*.css"))
@@ -13,6 +13,17 @@ JS = ["js/core.js", "js/glyphs.js", "engine/stage.js", "art/kit.js", "art/charac
 
 TITLE = "Pip's Valley"
 FONTS = ''  # fonts are embedded (web/fonts, css/shell.css)
+
+
+def build_stamp():
+    """Shown on the start screen so a parent can tell which build is on their device."""
+    try:
+        n = subprocess.check_output(["git", "rev-list", "--count", "HEAD"], cwd=ROOT, text=True).strip()
+    except Exception:
+        n = "0"
+    return f"{n} · {datetime.datetime.now(datetime.timezone.utc).strftime('%b %d, %H:%M')} UTC"
+
+
 BODY = '<div id="app"><div id="stage"></div><div id="overlay"></div><canvas id="fx"></canvas></div>'
 
 
@@ -23,7 +34,7 @@ def read(rel):
 
 def build_index():
     css = "\n".join(f'<link rel="stylesheet" href="{c}">' for c in CSS)
-    js = "\n".join(f'<script src="{j}"></script>' for j in JS)
+    js = f'<script>window.BUILD = "{build_stamp()}";</script>\n' + "\n".join(f'<script src="{j}"></script>' for j in JS)
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -67,7 +78,7 @@ def check_no_emoji():
 
 def build_single():
     css = inline_fonts("\n".join(read(c) for c in CSS))
-    js = "\n;\n".join(read(j) for j in JS).replace("</script", "<\\/script")
+    js = f'window.BUILD = "{build_stamp()}";\n' + "\n;\n".join(read(j) for j in JS).replace("</script", "<\\/script")
     html = f"""<title>{TITLE}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 {FONTS}
