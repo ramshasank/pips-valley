@@ -64,6 +64,38 @@ class VoiceWorkflowTests(unittest.TestCase):
         changed = dict(base, instructions='Calm')
         self.assertNotEqual(voice.cache_key(base), voice.cache_key(changed))
 
+    def test_baseline_audition_uses_existing_clips_without_an_api_key(self):
+        (self.root / 'voice/core.mp3').write_bytes(b'aaaabbbb')
+        with patch('sys.argv', ['voice.py', '--bundle', 'core', '--baseline']), patch('builtins.print'), patch.object(voice.urllib.request, 'urlopen', side_effect=AssertionError('Unexpected API call')):
+            voice.main()
+        preview = self.root / 'voice/previews/core'
+        self.assertIn('Current recording (baseline)', (preview / 'index.html').read_text())
+        self.assertEqual((self.root / 'voice/index.json').read_text(), self.original)
+
+    def test_small_audition_contains_different_delivery_styles(self):
+        lines = [dict(text='Great job!', key=str(i)) for i in range(10)] + [dict(text='Pick a picture.', key='prompt')]
+        selected = voice.preview_lines(lines, 3)
+        self.assertEqual(len(selected), 3)
+        self.assertIn('prompt', {line['key'] for line in selected})
+
+    def test_audition_gallery_preserves_multiple_voices_and_escapes_authored_text(self):
+        cache = self.root / 'voice/.cache'; cache.mkdir()
+        preview = self.root / 'voice/previews/core'
+        line = dict(text='<script>example</script>', key='example', who='')
+        for name in ('marin', 'cedar'):
+            body = dict(input=line['text'], model='test-model', voice=name)
+            (cache / (voice.cache_key(body) + '.mp3')).write_bytes(b'clip')
+            voice.write_audition(preview, [line], [(line, body)], name, 'test-model', cache)
+        overview = (preview / 'index.html').read_text()
+        self.assertIn('marin', overview); self.assertIn('cedar', overview)
+        variants = [p for p in preview.iterdir() if p.is_dir()]
+        self.assertEqual(len(variants), 2)
+        for folder in variants:
+            page = (folder / 'index.html').read_text()
+            self.assertNotIn('<script>example</script>', page)
+            self.assertIn('&lt;script&gt;', page)
+            self.assertTrue((folder / '0001.mp3').exists())
+
 
 if __name__ == '__main__':
     unittest.main()

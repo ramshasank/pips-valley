@@ -13,6 +13,8 @@ JS = ["js/core.js", "js/artwork.js", "js/loader.js", "js/glyphs.js", "engine/sta
 
 TITLE = "Pip's Valley"
 FONTS = ''  # fonts are embedded (web/fonts, css/shell.css)
+DEFERRED_ART = {p for p in JS if p.startswith('art/') and p not in ('art/kit.js', 'art/characters.js', 'art/valley.js', 'art/letters.js')}
+BOOT_JS = [p for p in JS if not p.startswith('games/') and p not in DEFERRED_ART]
 
 
 def build_stamp():
@@ -69,6 +71,8 @@ def activity_catalog():
         if not all(k in fields for k in ("id", "title", "group")):
             raise ValueError(f"Incomplete activity metadata: {path}")
         dependencies = ["games/story-tales.js", path] if fields["id"] == "story" else [path]
+        art = sorted(p for p in DEFERRED_ART if re.search(r'\bA\.' + re.escape(os.path.basename(p)[:-3]) + r'\b', source))
+        dependencies = art + dependencies
         fields["scripts"] = [p + "?v=" + ver(p) for p in dependencies]
         catalog.append(fields)
     if len({d["id"] for d in catalog}) != len(catalog):
@@ -103,7 +107,7 @@ def index_html():
     css = "\n".join(f'<link rel="stylesheet" href="{c}?v={ver(c)}">' for c in CSS)
     settings = json.dumps(activity_catalog(), separators=(",", ":")).replace("<", "\\u003c")
     js = f'<script>window.BUILD = "{build_stamp()}"; window.VOICE_V = "{ver("voice/index.json")}"; window.PIP_CATALOG = {settings};</script>\n'
-    js += "\n".join(f'<script defer src="{j}?v={ver(j)}"></script>' for j in JS if not j.startswith("games/"))
+    js += "\n".join(f'<script defer src="{j}?v={ver(j)}"></script>' for j in BOOT_JS)
     return document(css, js)
 
 

@@ -17,3 +17,7 @@
 .films-close { position: absolute; left: 14px; top: calc(14px + env(safe-area-inset-top, 0px)); width: 64px; height: 64px; border: 0; border-radius: 50%; background: #FBF6EC; box-shadow: 0 5px 0 rgba(0, 0, 0, .35); cursor: pointer; }
 .films-close::before, .films-close::after { content: ''; position: absolute; left: 17px; top: 29px; width: 30px; height: 6px; border-radius: 3px; background: #2B2A33; transform: rotate(45deg); }
 .films-close::after { transform: rotate(-45deg); }
+.films-controls { position: absolute; bottom: calc(20px + env(safe-area-inset-bottom, 0px)); left: 50%; transform: translateX(-50%); display: flex; gap: 16px; }
+.films-control { min-width: 76px; min-height: 56px; padding: 12px 20px; border-radius: 24px; color: #2B2A33; background: #FBF6EC; font-weight: 700; box-shadow: 0 4px 0 #0005; }
+.films-status { position: absolute; left: 8%; right: 8%; top: 35%; padding: 24px; text-align: center; color: #FBF6EC; background: #050f3a; border-radius: 24px; }
+.films-status[hidden] { display: none; }

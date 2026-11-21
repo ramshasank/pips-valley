@@ -49,3 +49,31 @@ test('missing recordings use the generic greeting rather than speaking a saved n
   const a = app(); a.K.sayBest(['Hi Example! Let’s play!', 'Hi! Let’s play!']); a.run(40);
   assert.equal(a.spoken[0].text, 'Hi! Let’s play!');
 });
+
+test('voice and effects levels are bounded and persist separately from player profiles', () => {
+  const a = app(); a.K.players.add({ name: 'First' });
+  a.K.setVolume('voiceVolume', 0.4); a.K.setVolume('effectsVolume', 2);
+  a.K.players.add({ name: 'Second' });
+  assert.equal(a.K.s.voiceVolume, 0.4); assert.equal(a.K.s.effectsVolume, 1);
+  a.K.setVolume('voiceVolume', 'invalid'); assert.equal(a.K.s.voiceVolume, 0.4);
+  a.K.say('Hello!'); a.run(40); assert.equal(a.spoken[0].volume, 0.4);
+});
+
+test('edge silence is shortened without removing a pause inside the spoken line', () => {
+  const { K } = app();
+  const samples = new Float32Array(1000);
+  samples.fill(0.1, 120, 400); samples.fill(0.1, 600, 820);
+  const result = K.voiceWindow({ sampleRate: 1000, length: 1000, duration: 1, numberOfChannels: 1, getChannelData: () => samples });
+  assert.ok(result.offset >= 0.07 && result.offset <= 0.09);
+  assert.ok(result.offset + result.duration >= 0.86);
+  assert.ok(result.offset + result.duration < 0.9);
+  assert.ok(result.offset < 0.4 && result.offset + result.duration > 0.6);
+});
+
+test('a quiet beginning in either stereo channel is preserved', () => {
+  const { K } = app();
+  const left = new Float32Array(1000), right = new Float32Array(1000);
+  right.fill(0.003, 0, 900); left.fill(0.1, 300, 900);
+  const result = K.voiceWindow({ sampleRate: 1000, length: 1000, duration: 1, numberOfChannels: 2, getChannelData: (c) => c ? right : left });
+  assert.equal(result.offset, 0);
+});

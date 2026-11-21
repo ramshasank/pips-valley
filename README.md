@@ -68,7 +68,8 @@ contract. Continuous integration checks the build, narration assets, profiles,
 speech cancellation, all 41 activities, painting persistence and loading recovery.
 The playable app still has no package dependencies.
 
-The grown-ups panel offers Playful and Gentle speech delivery. Existing recorded
+The grown-ups panel offers Playful and Gentle speech delivery and separate voice
+and play-sound volume controls. Play sounds soften during narration. Existing recorded
 voices keep their character; [docs/VOICE.md](docs/VOICE.md) explains how to preview
 and produce warmer replacement recordings without putting API keys in the app.
 

@@ -31,6 +31,18 @@ test('boot defers game code and all 41 activities can open without runtime error
   expect(errors).toEqual([]);
 });
 
+test('the valley loads one letter preview and defers activity artwork', async ({ page }) => {
+  const letters = [], rooms = [];
+  page.on('request', (r) => {
+    const path = new URL(r.url()).pathname;
+    if (path.startsWith('/img/letters/')) letters.push(path);
+    if (/^\/art\/(kitchen|build|band|town|story|pictures)\.js$/.test(path)) rooms.push(path);
+  });
+  await ready(page); await page.waitForTimeout(150);
+  expect(rooms).toEqual([]); expect(letters).toEqual(['/img/letters/a.webp']);
+  await open(page, 'kitchen'); expect(rooms).toContain('/art/kitchen.js');
+});
+
 test('freehand painting survives resize, reload and player switching', async ({ page }) => {
   await ready(page); await open(page, 'paint');
   await page.getByRole('button', { name: 'pictures', exact: true }).focus();
@@ -106,4 +118,83 @@ test('portable distribution loads its artwork and recordings from adjacent folde
   await page.waitForFunction(() => K._paint); await page.waitForTimeout(200);
   expect(await page.evaluate(() => K.activities.length)).toBe(41);
   expect(failures).toEqual([]);
+});
+
+test('speech waits for an in-flight recording index and still uses the recording', async ({ page }) => {
+  let release;
+  await page.route('**/voice/index.json*', async (route) => { await new Promise((resolve) => { release = resolve; }); await route.continue(); });
+  await page.goto('/'); await page.waitForFunction(() => window.K && K.valley);
+  await expect.poll(() => !!release).toBeTruthy();
+  await page.locator('button[aria-label="Play"]').focus(); await page.keyboard.press('Enter');
+  await page.evaluate(() => { K.hush(); window.pendingSpeech = K.say('Great job!'); });
+  release();
+  const status = await page.evaluate(async () => { await window.pendingSpeech; return K.voiceStatus(); });
+  expect(status.recorded).toBe(1); expect(status.device).toBe(0);
+});
+
+test('voice index download can recover after a temporary failure', async ({ page }) => {
+  await page.route('**/voice/index.json*', (route) => route.abort());
+  await ready(page);
+  await expect.poll(() => page.evaluate(() => K.voiceStatus().state)).toBe('missing');
+  await page.unroute('**/voice/index.json*');
+  await page.evaluate(() => K.loadVoice());
+  expect(await page.evaluate(() => K.voiceStatus().state)).toBe('ready');
+});
+
+test('parent audio controls persist and effects soften during narration', async ({ page }) => {
+  await page.addInitScript(() => {
+    const Original = window.AudioContext;
+    window.__gains = [];
+    window.AudioContext = class extends Original {
+      createGain() { const gain = super.createGain(); window.__gains.push(gain); return gain; }
+    };
+  });
+  await ready(page); await page.evaluate(() => K.parents());
+  const input = page.getByLabel('Voice volume', { exact: true });
+  await input.press('Home'); for (let i = 0; i < 8; i++) await input.press('ArrowRight');
+  expect(await page.evaluate(() => K.s.voiceVolume)).toBe(0.4);
+  const effects = page.getByLabel('Play sounds volume', { exact: true });
+  await effects.press('End'); for (let i = 0; i < 4; i++) await effects.press('ArrowLeft');
+  await page.evaluate(() => { K.sfx.tone(440, 3, { vol: 0.01 }); K.s.voice = true; K.say('Hello!'); });
+  await page.waitForTimeout(250);
+  const quiet = await page.evaluate(() => window.__gains[1].gain.value);
+  expect(quiet).toBeLessThan(0.4);
+  await page.evaluate(() => K.hush()); await page.waitForTimeout(900);
+  expect(await page.evaluate(() => window.__gains[1].gain.value)).toBeGreaterThan(0.7);
+  await page.reload(); await page.waitForFunction(() => window.K && K.valley);
+  expect(await page.evaluate(() => ({ voice: K.s.voiceVolume, effects: K.s.effectsVolume }))).toEqual({ voice: 0.4, effects: 0.8 });
+});
+
+test('story player supports keyboard pause, replay and returning focus to its card', async ({ page }) => {
+  await ready(page); await open(page, 'films');
+  const first = page.locator('.film-card').first();
+  await first.focus(); await page.keyboard.press('Enter');
+  const dialog = page.getByRole('dialog'); await expect(dialog).toBeVisible();
+  await expect(page.locator('.films-shelf')).toHaveJSProperty('inert', true);
+  await expect(page.getByRole('button', { name: /(?:Pause|Play) the story/ })).toBeFocused();
+  await expect.poll(() => page.locator('video').evaluate((v) => !v.paused)).toBeTruthy();
+  await page.getByRole('button', { name: 'Pause the story', exact: true }).press('Enter');
+  await expect(page.getByRole('button', { name: 'Play the story', exact: true })).toBeFocused();
+  expect(await page.locator('video').evaluate((v) => v.paused)).toBeTruthy();
+  await page.getByRole('button', { name: 'Replay the story', exact: true }).press('Enter');
+  await expect.poll(() => page.locator('video').evaluate((v) => !v.paused)).toBeTruthy();
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  await expect(first).toBeFocused(); await expect(page.locator('.films-shelf')).toHaveJSProperty('inert', false);
+});
+
+test('story shelf recovers after a failed catalog request', async ({ page }) => {
+  await ready(page); await page.route('**/films/index.json', (route) => route.abort());
+  await open(page, 'films'); await expect(page.getByRole('button', { name: 'Try again', exact: true })).toBeVisible();
+  await page.unroute('**/films/index.json'); await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect(page.locator('.film-card')).toHaveCount(22);
+});
+
+test('a failed story film offers a visible retry without losing the close control', async ({ page }) => {
+  await ready(page); await open(page, 'films');
+  await page.route('**/films/*.mp4', (route) => route.abort());
+  await page.locator('.film-card').first().click();
+  await expect(page.getByRole('button', { name: 'Try again', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close the story', exact: true })).toBeVisible();
+  await page.unroute('**/films/*.mp4'); await page.getByRole('button', { name: 'Try again', exact: true }).click();
+  await expect.poll(() => page.locator('video').evaluate((v) => !v.paused && v.readyState >= 2)).toBeTruthy();
 });

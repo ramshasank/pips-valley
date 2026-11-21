@@ -13,6 +13,15 @@ room in Gentle mode. The backup voice uses subtle pacing and pitch changes.
 Idle reminders wait 22 seconds and never interrupt speech already in progress.
 The speaker button always lets the child ask again.
 
+Only leading and trailing silence is shortened; pauses inside a line remain intact.
+Separate voice and play-sound volume controls let caregivers set a comfortable mix.
+Play sounds soften while Pip speaks, then return smoothly. Voice volume also applies
+to story films. The player waits briefly for an index already loading before choosing
+device speech, and failed index downloads can be retried in the grown-ups panel.
+
+Story Time has explicit play/pause and replay controls, Escape to close, keyboard
+focus handling and retry for interrupted downloads. Films pause when the tab is hidden.
+
 Choose Playful or Gentle under the grown-ups settings. This changes playback pacing
 and device speech; it does not replace or transform the voice in existing MP3s.
 Story films have their own baked-in narration and need a separate video production
@@ -24,6 +33,17 @@ The generator is a maintainer tool. The playable site contains no API key and ma
 no live speech-generation requests. A key belongs only in the maintainer's local
 environment or secret manager; never paste it into chat, source code or a web form
 in this app.
+
+You can audition a baseline immediately, using only the existing public recordings:
+
+```sh
+python3 tools/voice.py --bundle core --limit 5 --baseline
+```
+
+Open `http://localhost:8000/voice/previews/core/index.html` while the local server is
+running. This requires no API key and labels the clips as the current recording.
+Baseline clips keep their original file timing; the app's silence trimming applies
+during in-app playback. Later generated candidates appear beside this baseline.
 
 1. Install the development tools described in [CONTRIBUTING.md](../CONTRIBUTING.md)
    and FFmpeg. Serve the app locally with `python3 -m http.server 8000`.
@@ -51,8 +71,10 @@ in this app.
    python3 tools/voice.py --bundle core --model MODEL_ID --limit 5 --generate
    ```
 
-5. Listen to the numbered clips in `voice/previews/core/`. Cached clips and previews
-   are ignored by Git. Check warmth, pronunciation, natural pauses, comfortable
+5. Open `http://localhost:8000/voice/previews/core/index.html` to audition the clips.
+   Different voices and directions get separate folders and remain available for
+   comparison. A small preview samples different delivery styles when available.
+   Cached clips and previews are ignored by Git. Check warmth, pronunciation, natural pauses, comfortable
    volume and whether encouragement sounds sincere. Listen on a phone speaker.
    Check with adults first, then get feedback from children with their caregivers.
 6. After choosing a voice and directions, generate the complete bundle without

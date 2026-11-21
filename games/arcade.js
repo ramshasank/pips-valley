@@ -62,14 +62,14 @@
       if (!mineList.length) continue;
       const head = K.el('div.arcade-band.arcade-age' + b.age, null, [K.el('b', { text: b.title }), K.el('span', { text: b.sub })]);
       shelf.appendChild(head);
-      const row = K.el('div.arcade-row', { role: 'list' });
+      const row = K.el('div.arcade-row', { role: 'group', 'aria-label': b.title });
       for (const d of mineList) {
         const cv = K.el('canvas', { width: 300, height: 300, 'aria-hidden': 'true' });
         canvases.push([cv, d]); paint(cv, d);
         cv.dataset.game = d.id;
         if (observer) observer.observe(cv);
         else K.ensureActivity(d.id).then(() => { if (ctx.alive) paint(cv, d); }).catch(() => {});
-        row.appendChild(K.el('button.arcade-card.arcade-age' + b.age, { type: 'button', role: 'listitem', 'data-id': d.id, 'data-s': subjectOf(d), 'aria-label': d.title,
+        row.appendChild(K.el('button.arcade-card.arcade-age' + b.age, { type: 'button', 'data-id': d.id, 'data-s': subjectOf(d), 'aria-label': d.title,
           onclick: () => { K.sfx.pop(); K.s.done.arcadeLast = d.id; K.go(d.id); } }, [cv, K.el('span', { text: d.title })]));
       }
       shelf.appendChild(row); rows.push({ head, row });

@@ -99,6 +99,18 @@
   }
   const TUM = { 'a-open': [0.492, 0.66, 0.281], a: [0.494, 0.662, 0.279], 'b-open': [0.493, 0.641, 0.25], b: [0.491, 0.644, 0.251], 'c-open': [0.494, 0.688, 0.265], c: [0.493, 0.688, 0.269], 'd-open': [0.492, 0.678, 0.276], d: [0.489, 0.684, 0.276], 'e-open': [0.489, 0.675, 0.274], e: [0.49, 0.671, 0.277], 'f-open': [0.493, 0.684, 0.267], f: [0.49, 0.684, 0.268], 'g-open': [0.495, 0.681, 0.265], g: [0.494, 0.685, 0.264], 'h-open': [0.488, 0.628, 0.256], h: [0.488, 0.63, 0.255], 'i-open': [0.493, 0.687, 0.271], i: [0.494, 0.684, 0.272], 'j-open': [0.492, 0.709, 0.268], j: [0.492, 0.716, 0.26], 'k-open': [0.494, 0.673, 0.254], k: [0.494, 0.677, 0.257], 'l-open': [0.492, 0.662, 0.273], l: [0.492, 0.667, 0.271], 'm-open': [0.494, 0.629, 0.273], m: [0.493, 0.638, 0.273], 'n-open': [0.487, 0.688, 0.26], n: [0.489, 0.691, 0.262], 'o-open': [0.491, 0.664, 0.26], o: [0.49, 0.659, 0.262], 'p-open': [0.494, 0.664, 0.251], p: [0.495, 0.671, 0.253], 'q-open': [0.489, 0.678, 0.274], q: [0.489, 0.685, 0.271], 'r-open': [0.492, 0.665, 0.253], r: [0.491, 0.669, 0.253], 's-open': [0.494, 0.709, 0.257], s: [0.494, 0.709, 0.26], 't-open': [0.493, 0.678, 0.258], t: [0.49, 0.681, 0.262], 'u-open': [0.489, 0.679, 0.262], u: [0.489, 0.679, 0.261], 'v-open': [0.494, 0.669, 0.277], v: [0.495, 0.677, 0.269], 'w-open': [0.493, 0.653, 0.276], w: [0.494, 0.655, 0.277], 'x-open': [0.489, 0.659, 0.268], x: [0.491, 0.66, 0.272], 'y-open': [0.493, 0.673, 0.281], y: [0.489, 0.684, 0.275], 'z-open': [0.491, 0.671, 0.261], z: [0.49, 0.667, 0.26] };
   const MIM = {}; let mAsked = false, mLeft = 52, mBad = false;
+  const previews = {};
+  Lt.preview = function (ch) {
+    if (!/^[a-z]$/.test(ch)) return Promise.resolve(false);
+    if (MIM[ch]) return Promise.resolve(true);
+    if (!previews[ch]) previews[ch] = new Promise((resolve) => {
+      const im = new Image();
+      im.onload = () => { MIM[ch] = im; resolve(true); };
+      im.onerror = () => { delete previews[ch]; resolve(false); };
+      im.src = 'img/letters/' + ch + '.webp';
+    });
+    return previews[ch];
+  };
   Lt.pics = false;
   Lt.ready = function () {
     if (!mAsked) { mAsked = true; mLeft += Object.keys(WSRC).length; for (const nm in WSRC) { const im = new Image(); im.onload = () => { WIM[nm] = im; mLeft--; }; im.onerror = () => { mBad = true; mLeft--; }; im.src = 'img/' + WSRC[nm] + '.webp'; } for (const ch of 'abcdefghijklmnopqrstuvwxyz') for (const v of ['', '-open']) { const im = new Image(); im.onload = () => { MIM[ch + v] = im; mLeft--; }; im.onerror = () => { mBad = true; mLeft--; }; im.src = 'img/letters/' + ch + v + '.webp'; } }
@@ -132,7 +144,7 @@
   }
   Lt.monster = function (g, s, ch, F, st) {
     st = st || {};
-    if (Lt.pics) return picMonster(g, ch, F, st);
+    if (Lt.pics || (MIM[ch] && (!(st.open >= 0.5) || MIM[ch + '-open']))) return picMonster(g, ch, F, st);
     const m = Lt.metrics(ch), col = st.color || Lt.color(ch), sp = Lt.body(ch, F, col);
     const q = st.squash || 0, w = (m.r - m.l) * F;
     const ft = feet[ch] || [-w / 2 / F, w / 2 / F], span = (ft[1] - ft[0]) * F, fc = ((ft[0] + ft[1]) / 2) * F;
