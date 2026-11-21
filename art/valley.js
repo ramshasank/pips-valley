@@ -298,6 +298,24 @@
       piece(g, s, ct('#C9C3BA'), (p) => p.arc(x, -24, 11, 0, 7), { shadow: 0, grain: 0.1 });
     }
   };
+  /** Story Time: a little picture theatre with a night sky on its screen. */
+  V.toys.cinema = function (g, s) {
+    const wood = ct('wood');
+    for (const x of [-104, 92]) piece(g, s, wood, (p) => A.rect(p, x, -214, 12, 214, 3, x), { shadow: 0.5 });
+    piece(g, s, ct('teal'), (p) => A.rect(p, -112, -84, 224, 84, 8, 3, 0.6), { box: { x: -112, y: -84, w: 224, h: 84 } });
+    piece(g, s, ct('marigold'), (p) => A.cut(p, [[-22, -62], [-22, -22], [16, -42]], 5, 0.4, 2), { shadow: 0.3, grain: 0.1 });
+    for (const x of [-78, 62]) piece(g, s, ct('#FBF6EC'), (p) => A.blob(p, x + 8, -42, 9, 9, 0.05, x), { shadow: 0.2, grain: 0 });
+    const x = -96, y = -214, w = 192, h = 126;
+    piece(g, s, ct('#1E2C74'), (p) => A.rect(p, x, y, w, h, 4, 6), { box: { x, y, w, h }, light: 0.03 });
+    g.save(); g.beginPath(); A.rect(g, x + 4, y + 4, w - 8, h - 8, 2, 7); g.clip();
+    g.beginPath(); g.moveTo(x, -116); g.quadraticCurveTo(-30, -146, 24, -122); g.quadraticCurveTo(60, -108, x + w, -128); g.lineTo(x + w, y + h); g.lineTo(x, y + h); g.closePath(); g.fillStyle = ct('#1F6B62'); g.fill();
+    g.beginPath(); A.blob(g, 38, -172, 22, 22, 0.04, 3); g.fillStyle = ct('#F7E7AE'); g.fill();
+    for (const [sx, sy, r] of [[-62, -186, 4], [-30, -160, 3], [-74, -150, 3], [4, -194, 3.5], [70, -142, 3]]) { g.beginPath(); g.arc(sx, sy, r, 0, 7); g.fillStyle = ct('#FBF6EC'); g.fill(); }
+    g.restore();
+    for (const k of [-1, 1]) piece(g, s, ct('tomato'), (p) => A.cut(p, [[k * 100, -218], [k * 58, -218], [k * 70, -160], [k * 62, -92], [k * 100, -88]], 8, 0.5, 4 + k), { shadow: 0.6 });
+    piece(g, s, ct('tomato'), (p) => { p.moveTo(-118, -220); for (let i = 0; i < 6; i++) { const x0 = -118 + i * 39.3; p.quadraticCurveTo(x0 + 19.6, -188, x0 + 39.3, -220); } p.lineTo(118, -246); p.lineTo(-118, -246); p.closePath(); }, { shadow: 0.7, box: { x: -118, y: -246, w: 236, h: 40 } });
+    piece(g, s, ct('marigold'), (p) => A.rect(p, -122, -252, 244, 12, 5, 9), { shadow: 0.4, grain: 0.1 });
+  };
   V.toys.easel = function (g, s) {
     const wood = ct('wood');
     A.line(g, A.shade(wood, -0.1), 10, (p) => { p.moveTo(0, -250); p.lineTo(0, 0); });

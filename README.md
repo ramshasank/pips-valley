@@ -20,6 +20,7 @@ Pip lives in a little valley. Each place in the valley is a toy:
 | Animal Band | Play drums, xylophone, trumpet and ukulele with the animals |
 | Story Studio | Act out three picture books with taps, swipes and holds |
 | Pip's Town | Drive a delivery van along the street |
+| Story Time | Watch 22 short narrated story films about sharing, trying again, telling the truth and bedtime |
 
 Nobody can lose. There are no timers and no scores. If a child is stuck, a paper hand shows the move.
 
@@ -50,5 +51,6 @@ It also writes the whole app as one file to `dist/playhouse.html`.
 - Code: [MIT](LICENSE).
 - Drawings, stories and characters: [CC BY 4.0](LICENSE-ART.md). Share and adapt them, with credit.
 - The pictures in `img/` (Pip, the letter monsters, the story books, the band, the kitchen and the playroom) were generated with an OpenAI image model and are shared under the same CC BY 4.0 terms.
+- The story films in `films/` were animated with [HyperFrames](https://github.com/heygen-com/hyperframes) from the same pictures and are shared under CC BY 4.0, except for their narration (see the voice note below).
 - Fonts: Andika and Fraunces, under the [SIL Open Font License](fonts/OFL.txt).
 - The spoken lines in `voice/` were generated with Fish Audio S2 Pro. Fish Audio's model licence allows research and non-commercial use only, so the voice clips are **not** covered by the MIT or CC BY licences above: do not use them commercially.

@@ -11,6 +11,7 @@
   const TOYS = [
     { key: 'blocks', title: 'Build It', x: 250, id: 'build', legacy: 'puzzle', box: [-100, -268, 200, 270] },
     { key: 'letters', title: 'Letter Monsters', x: 930, id: 'letters', legacy: 'abc', box: [-100, -244, 300, 246] },
+    { key: 'cinema', title: 'Story Time', x: 1272, id: 'films', legacy: 'films', box: [-122, -252, 244, 254] },
     { key: 'books', title: 'Story Studio', x: 1600, id: 'story', legacy: 'story', box: [-100, -150, 200, 152] },
     { key: 'kitchen', title: 'Monster Kitchen', x: 1960, legacy: 'kitchen', box: [-150, -336, 300, 338] },
     { key: 'car', title: "Pip's Town", x: 2730, id: 'town', legacy: 'vroom', box: [-130, -200, 330, 202] },
@@ -216,6 +217,7 @@
       if (t.key === 'books') sp('books', V.toys.books, [-100, -150, 200, 152]);
       if (t.key === 'car') { n.car = sp('car', V.toys.car, [-110, -200, 320, 202]); }
       if (t.key === 'band') sp('band', V.toys.band, [-126, -170, 340, 172]);
+      if (t.key === 'cinema') sp('cinema', V.toys.cinema, [-130, -262, 260, 264]);
       if (t.key === 'easel') sp('easel', V.toys.easel, [-150, -266, 290, 268]);
       if (t.key === 'letters') {
         sp('chalk', V.toys.chalkboard, [-100, -240, 200, 242]);
