@@ -5,7 +5,7 @@
   'use strict';
   const A = K.art;
   let LIST = null;
-  const load = () => (LIST ? Promise.resolve(LIST) : fetch('films/index.json').then((r) => (r.ok ? r.json() : [])).catch(() => []).then((l) => (LIST = l)));
+  const load = () => (LIST ? Promise.resolve(LIST) : fetch('films/index.json', { cache: 'no-cache' }).then((r) => (r.ok ? r.json() : [])).catch(() => []).then((l) => (LIST = l)));
 
   function start(st, ctx) {
     const W = st.W, H = st.H;

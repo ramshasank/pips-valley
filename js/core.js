@@ -1,6 +1,29 @@
 /* Pip's Playhouse — core engine.
    Everything hangs off the global `K`. Activities call K.register({...}) and receive a `ctx`.
    See web/ACTIVITY_API.md for the contract. */
+/* Small fill-ins so the app also runs on older iPads and phones (Safari before 16). */
+(function () {
+  'use strict';
+  try {
+    const P = window.CanvasRenderingContext2D && CanvasRenderingContext2D.prototype;
+    const rr = function (x, y, w, h, r) {
+      let rs = Array.isArray(r) ? r.slice() : [r || 0];
+      rs = rs.map((v) => (v && typeof v === 'object' ? v.x || 0 : +v || 0));
+      if (rs.length === 1) rs = [rs[0], rs[0], rs[0], rs[0]]; else if (rs.length === 2) rs = [rs[0], rs[1], rs[0], rs[1]]; else if (rs.length === 3) rs = [rs[0], rs[1], rs[2], rs[1]];
+      if (w < 0) { x += w; w = -w; } if (h < 0) { y += h; h = -h; }
+      const k = Math.min(1, w / Math.max(1e-6, rs[0] + rs[1]), w / Math.max(1e-6, rs[3] + rs[2]), h / Math.max(1e-6, rs[0] + rs[3]), h / Math.max(1e-6, rs[1] + rs[2]));
+      const [a, b, c, d] = rs.map((v) => v * k);
+      this.moveTo(x + a, y); this.lineTo(x + w - b, y); this.arcTo(x + w, y, x + w, y + b, b); this.lineTo(x + w, y + h - c); this.arcTo(x + w, y + h, x + w - c, y + h, c);
+      this.lineTo(x + d, y + h); this.arcTo(x, y + h, x, y + h - d, d); this.lineTo(x, y + a); this.arcTo(x, y, x + a, y, a); this.closePath();
+    };
+    if (P && !P.roundRect) P.roundRect = rr;
+    if (window.Path2D && !Path2D.prototype.roundRect) Path2D.prototype.roundRect = rr;
+    const at = function (i) { i = Math.trunc(i) || 0; if (i < 0) i += this.length; return i < 0 || i >= this.length ? undefined : this[i]; };
+    for (const C of [Array, String]) if (!C.prototype.at) Object.defineProperty(C.prototype, 'at', { value: at, writable: true, configurable: true });
+    if (!Object.hasOwn) Object.hasOwn = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+    if (!String.prototype.replaceAll) String.prototype.replaceAll = function (a, b) { return typeof a === 'string' ? this.split(a).join(b) : this.replace(a, b); };
+  } catch (e) { /* ignore */ }
+})();
 (function () {
   'use strict';
   const K = (window.K = {});
@@ -189,13 +212,13 @@
   const vstat = { state: 'loading', clips: 0, recorded: 0, device: 0, problem: '' };
   K.voiceStatus = () => Object.assign({}, vstat);
   function loadBundle(id) {
-    if (!bundles[id]) bundles[id] = fetch('voice/' + id + '.mp3').then((r) => { if (r.ok) return r.arrayBuffer(); vstat.problem = `recording file "${id}" answered ${r.status}`; return null; }).catch((e) => { vstat.problem = `recording file "${id}" could not be fetched (${e && e.message})`; return null; });
+    if (!bundles[id]) bundles[id] = fetch('voice/' + id + '.mp3' + (window.VOICE_V ? '?v=' + window.VOICE_V : '')).then((r) => { if (r.ok) return r.arrayBuffer(); vstat.problem = `recording file "${id}" answered ${r.status}`; return null; }).catch((e) => { vstat.problem = `recording file "${id}" could not be fetched (${e && e.message})`; return null; });
     return bundles[id];
   }
   K.loadVoice = function () {
     if (location.protocol === 'file:') { vstat.state = 'missing'; vstat.problem = 'opened as a local file'; return Promise.resolve(); } // recordings need http(s)
     try {
-      return fetch('voice/index.json').then((r) => { if (r.ok) return r.json(); vstat.problem = 'recording list answered ' + r.status; return null; })
+      return fetch('voice/index.json' + (window.VOICE_V ? '?v=' + window.VOICE_V : '')).then((r) => { if (r.ok) return r.json(); vstat.problem = 'recording list answered ' + r.status; return null; })
         .then((j) => { clipIdx = j; vstat.state = j ? 'ready' : 'missing'; if (j) { vstat.clips = Object.keys(j).length; loadBundle('core'); } })
         .catch((e) => { vstat.state = 'missing'; vstat.problem = 'recording list could not be fetched (' + (e && e.message) + ')'; });
     } catch (e) { vstat.state = 'missing'; vstat.problem = String(e && e.message); return Promise.resolve(); }

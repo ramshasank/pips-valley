@@ -32,9 +32,19 @@ def read(rel):
         return f.read()
 
 
+def ver(rel):
+    """A short fingerprint of a file, added to its link so browsers fetch the new copy after an update instead of a stale cached one."""
+    import hashlib
+    try:
+        with open(os.path.join(ROOT, rel), "rb") as f:
+            return hashlib.sha1(f.read()).hexdigest()[:8]
+    except OSError:
+        return "0"
+
+
 def build_index():
-    css = "\n".join(f'<link rel="stylesheet" href="{c}">' for c in CSS)
-    js = f'<script>window.BUILD = "{build_stamp()}";</script>\n' + "\n".join(f'<script src="{j}"></script>' for j in JS)
+    css = "\n".join(f'<link rel="stylesheet" href="{c}?v={ver(c)}">' for c in CSS)
+    js = f'<script>window.BUILD = "{build_stamp()}"; window.VOICE_V = "{ver("voice/index.json")}";</script>\n' + "\n".join(f'<script src="{j}?v={ver(j)}"></script>' for j in JS)
     html = f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -78,7 +88,7 @@ def check_no_emoji():
 
 def build_single():
     css = inline_fonts("\n".join(read(c) for c in CSS))
-    js = f'window.BUILD = "{build_stamp()}";\n' + "\n;\n".join(read(j) for j in JS).replace("</script", "<\\/script")
+    js = f'window.BUILD = "{build_stamp()}"; window.VOICE_V = "{ver("voice/index.json")}";\n' + "\n;\n".join(read(j) for j in JS).replace("</script", "<\\/script")
     html = f"""<title>{TITLE}</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 {FONTS}
