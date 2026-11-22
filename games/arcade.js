@@ -14,6 +14,7 @@
   const games = () => K.activities.filter((a) => a.group === 'arcade').sort((a, b) => (a.order || 0) - (b.order || 0));
 
   function paint(cv, def) {
+    def = K.activities.find((a) => a.id === def.id) || def;
     const w = cv.width, g = cv.getContext('2d');
     g.clearRect(0, 0, w, w);
     try { g.save(); if (def.icon) def.icon(g, w); g.restore(); } catch (e) { console.error(e); }
@@ -32,6 +33,17 @@
     const mine = K.level() >= 3 ? 7 : K.level() === 2 ? 5 : 3;                // the player's own age band comes first
     const bands = BANDS.slice().sort((a, b) => (b.age === mine) - (a.age === mine) || a.age - b.age);
     const list = games(), canvases = [], rows = [];
+    const observer = window.IntersectionObserver ? new IntersectionObserver((entries) => {
+      for (const entry of entries) if (entry.isIntersecting) {
+        const cv = entry.target, def = list.find((d) => d.id === cv.dataset.game);
+        observer.unobserve(cv);
+        K.ensureActivity(def.id).then(() => {
+          if (!ctx.alive) return;
+          paint(cv, def);
+          ctx.after(900, () => paint(cv, def));
+        }).catch(() => {}); // the card remains usable; opening it offers a retry
+      }
+    }, { root: shelf, rootMargin: '100px' }) : null;
     const have = new Set(list.map(subjectOf));
     let pick = have.has(K.s.done.arcadeSubject) ? K.s.done.arcadeSubject : 'all';
     const chips = K.el('div.arcade-chips', { role: 'group', 'aria-label': 'Kinds of game' });
@@ -50,11 +62,14 @@
       if (!mineList.length) continue;
       const head = K.el('div.arcade-band.arcade-age' + b.age, null, [K.el('b', { text: b.title }), K.el('span', { text: b.sub })]);
       shelf.appendChild(head);
-      const row = K.el('div.arcade-row', { role: 'list' });
+      const row = K.el('div.arcade-row', { role: 'group', 'aria-label': b.title });
       for (const d of mineList) {
         const cv = K.el('canvas', { width: 300, height: 300, 'aria-hidden': 'true' });
         canvases.push([cv, d]); paint(cv, d);
-        row.appendChild(K.el('button.arcade-card.arcade-age' + b.age, { type: 'button', role: 'listitem', 'data-id': d.id, 'data-s': subjectOf(d), 'aria-label': d.title,
+        cv.dataset.game = d.id;
+        if (observer) observer.observe(cv);
+        else K.ensureActivity(d.id).then(() => { if (ctx.alive) paint(cv, d); }).catch(() => {});
+        row.appendChild(K.el('button.arcade-card.arcade-age' + b.age, { type: 'button', 'data-id': d.id, 'data-s': subjectOf(d), 'aria-label': d.title,
           onclick: () => { K.sfx.pop(); K.s.done.arcadeLast = d.id; K.go(d.id); } }, [cv, K.el('span', { text: d.title })]));
       }
       shelf.appendChild(row); rows.push({ head, row });
@@ -65,7 +80,7 @@
     ctx.after(2600, () => canvases.forEach(([cv, d]) => paint(cv, d)));
     const last = K.s.done.arcadeLast && shelf.querySelector('[data-id="' + K.s.done.arcadeLast + '"]');
     if (last) ctx.after(60, () => { try { last.scrollIntoView({ block: 'center' }); } catch (e) { /* ignore */ } });
-    ctx.onExit(() => { shelf.remove(); K._arcade = null; });
+    ctx.onExit(() => { if (observer) observer.disconnect(); shelf.remove(); K._arcade = null; });
     K._arcade = { list: () => games().map((d) => d.id), subjects: () => games().map((d) => d.id + ':' + subjectOf(d)) };
     ctx.prompt('Pick a game.');
   }

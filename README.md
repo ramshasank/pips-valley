@@ -37,8 +37,9 @@ Nobody can lose. There are no timers and no scores. If a child is stuck, a paper
 
 ## Privacy
 
-The app never sends anything anywhere. There is no tracking and there are no accounts.
-Player names, stickers, paintings and builds are kept only on the device, in the browser's own storage.
+There is no tracking and there are no accounts. Player names, progress and paintings
+stay in this browser's storage. Recorded audio and artwork come from the site host;
+missing speech may use the device's speech service. See [PRIVACY.md](PRIVACY.md).
 
 ## Early version
 
@@ -55,7 +56,22 @@ python3 -m http.server 8000     # then open http://localhost:8000
 ```
 
 After adding or removing a script file, run `python3 build.py` to regenerate `index.html`.
-It also writes the whole app as one file to `dist/playhouse.html`.
+Games load when they are needed. The build also writes combined code and fonts to
+`dist/playhouse.html` and copies its media alongside it. Distribute the entire
+`dist/` folder and serve it over HTTP; the HTML alone does not contain its media.
+Use `python3 build.py --web-only` to skip that distribution copy.
+
+## Development and voice
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup, checks and the activity
+contract. Continuous integration checks the build, narration assets, profiles,
+speech cancellation, all 41 activities, painting persistence and loading recovery.
+The playable app still has no package dependencies.
+
+The grown-ups panel offers Playful and Gentle speech delivery and separate voice
+and play-sound volume controls. Play sounds soften during narration. Existing recorded
+voices keep their character; [docs/VOICE.md](docs/VOICE.md) explains how to preview
+and produce warmer replacement recordings without putting API keys in the app.
 
 ## Licence
 

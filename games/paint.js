@@ -45,6 +45,19 @@
     const ink = document.createElement('canvas'); ink.width = ink.height = S; const ig = ink.getContext('2d');
     let pic = null, fills = [], brush = POTS[0].c, size = 1, mode = 'fill', chooserOpen = false, finished = false;
     const anims = [], undo = [];
+    const playerId = (K.players.current() || {}).id || 'guest';
+    let loaded = false, revision = 0, changed = false;
+    const paintingKey = () => playerId + ':' + (pic ? pic.id : 'blank');
+    function savePainting() {
+      if (!loaded || !changed) return;
+      // Complete pending pours before taking the snapshot.
+      pg.setTransform(k, 0, 0, k, 0, 0);
+      for (const a of anims) { Pic.fillRegion(pg, pic, a.i, a.col); Pic.paintAbove(pg, pic, fills, a.i); }
+      anims.length = 0;
+      K.artwork.put(paintingKey(), paint.toDataURL('image/png'));
+      changed = false;
+    }
+    ctx.onExit(savePainting);
 
     /* ---------- room ---------- */
     if (!STUDIO.ok && !STUDIO.bad) STUDIO.wait.then((ok) => { if (ok && ctx.alive) K.go('paint'); });      // the painted wall arrived late: start again with it
@@ -80,16 +93,27 @@
       if (pic) pic.regions.forEach((r, i) => { if (fills[i]) Pic.fillRegion(pg, pic, i, fills[i]); else if (i) Pic.fillRegion(pg, pic, i, Pic.PAPER); });
     }
     function load(next) {
+      savePainting();
+      loaded = true; changed = false;
+      const version = ++revision;
       anims.length = 0; undo.length = 0; finished = false;
       pic = next; fills = pic ? (store[pic.id] || []).slice() : []; mode = pic ? 'fill' : 'brush';
       ig.setTransform(1, 0, 0, 1, 0, 0); ig.clearRect(0, 0, S, S);
       if (pic) { ig.setTransform(k, 0, 0, k, 0, 0); Pic.ink(ig, pic, 5); }
       repaintAll();
+      store._last = pic ? pic.id : 'blank'; K.save();
+      K.artwork.get(paintingKey()).then((data) => {
+        if (!data || !ctx.alive || version !== revision) return;
+        const im = new Image();
+        im.onload = () => { if (ctx.alive && version === revision) { pg.setTransform(1, 0, 0, 1, 0, 0); pg.drawImage(im, 0, 0, S, S); } };
+        im.src = data;
+      });
       if (pic) finished = pic.regions.every((r, i) => fills[i]);
       ctx.prompt(pic ? `Color the ${pic.name}!` : SAY.free);
     }
     let last = null, gesture = false;
     function touch(p, first) {
+      revision++; changed = true;
       const q = toPic(p);
       if (mode === 'fill' && !pic) {
         // pouring onto blank paper covers the whole sheet
@@ -114,7 +138,7 @@
     }
     paper.onDown = (p) => { if (chooserOpen) return; gesture = false; last = null; touch(p, true); };
     paper.onMove = (p) => { if (!chooserOpen) touch(p, false); };
-    paper.onUp = () => { last = null; gesture = false; };
+    paper.onUp = () => { last = null; gesture = false; savePainting(); };
     function done() {
       K.sfx.sparkle(); ctx.fx.burst(px + P / 2, py + P / 2, { n: 26 }); ctx.fx.confetti();
       ctx.say(`You colored the ${pic.name}!`).then(() => ctx.say(SAY.done));
@@ -211,12 +235,12 @@
     }, () => { if (mode === 'brush') { size = (size + 1) % 3; K.say(SIZE_NAMES[size]); } mode = 'brush'; K.sfx.tap(); });
     brushTool.on = () => mode === 'brush';
     tool(3, 'undo', (g) => { A.line(g, A.C.ink, 7, (h) => { h.arc(2, 4, 20, Math.PI * 1.15, Math.PI * 0.35); }); g.beginPath(); g.moveTo(-30, -16); g.lineTo(-8, -20); g.lineTo(-20, 2); g.closePath(); g.fillStyle = A.C.ink; g.fill(); },
-      () => { const u = undo.pop(); if (!u) { K.sfx.tap(); return; } anims.length = 0; pg.setTransform(1, 0, 0, 1, 0, 0); pg.clearRect(0, 0, S, S); pg.drawImage(u.c, 0, 0); fills = u.fills; if (pic) { store[pic.id] = fills.slice(); K.save(); finished = false; } K.sfx.whoosh(); });
+      () => { const u = undo.pop(); if (!u) { K.sfx.tap(); return; } revision++; changed = true; anims.length = 0; pg.setTransform(1, 0, 0, 1, 0, 0); pg.clearRect(0, 0, S, S); pg.drawImage(u.c, 0, 0); fills = u.fills; if (pic) { store[pic.id] = fills.slice(); K.save(); finished = false; } savePainting(); K.sfx.whoosh(); });
     let armed = 0;
     tool(4, 'wipe', (g, s) => { g.save(); g.rotate(-0.2); g.beginPath(); A.rect(g, -28, -18, 56, 36, 10, 3, 1); A.paper(g, s, '#F2D060', { shadow: 0.6 }); for (const [x, y, r] of [[-12, -4, 5], [8, 4, 4], [14, -8, 3]]) { g.beginPath(); g.arc(x, y, r, 0, 7); g.fillStyle = '#D9B345'; g.fill(); } g.restore(); },
       (n) => {
         if (performance.now() - armed > 4000) { armed = performance.now(); n.pulse = true; ctx.after(4000, () => (n.pulse = false)); K.sfx.tap(); K.say(SAY.wipe); return; }
-        armed = 0; n.pulse = false; snapshot(); anims.length = 0; fills = []; if (pic) { store[pic.id] = []; K.save(); finished = false; } repaintAll(); K.sfx.whoosh();
+        armed = 0; n.pulse = false; snapshot(); revision++; changed = true; anims.length = 0; fills = []; if (pic) { store[pic.id] = []; K.save(); finished = false; } repaintAll(); savePainting(); K.sfx.whoosh();
       });
     // the loaded brush, so the current colour is always in view
     if (land) st.add({ z: 20, x: W - 104, y: 880, draw(g, s) {
@@ -270,7 +294,7 @@
 
     K._paint = { get pic() { return pic; }, get fills() { return fills; }, get brush() { return brush; }, get mode() { return mode; }, dish, toPage: (x, y) => ({ x: px + (x / 400) * P, y: py + (y / 400) * P }) }; // for browser tests
     ctx.onExit(() => { K._paint = null; });
-    load(Pic.list.find((p) => !p.regions.every((r, i) => (store[p.id] || [])[i])) || Pic.list[0]);
+    load(store._last === 'blank' ? null : Pic.list.find((p) => p.id === store._last) || Pic.list.find((p) => !p.regions.every((r, i) => (store[p.id] || [])[i])) || Pic.list[0]);
   }
 
   K.game({ id: 'paint', title: 'Paint Studio', voice: 'color', group: 'create', order: 1, start, lines, resize: () => K.go('paint') });

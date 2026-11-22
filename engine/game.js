@@ -29,7 +29,7 @@
 
     /* ---- prompt: spoken, repeated on the speaker button and after a quiet spell ---- */
     let text = '', who, idle = null, caption = '';
-    const arm = () => { clearTimeout(idle); idle = setTimeout(() => { if (ctx.alive && text) { K.say(text, { who }); arm(); } }, 14000); };
+    const arm = () => { clearTimeout(idle); idle = setTimeout(() => { if (ctx.alive && text) { K.say(text, { who, idle: true }); arm(); } }, 22000); };
     ctx._poke = () => { if (idle) arm(); };
     st.canvas.addEventListener('pointerdown', () => ctx._poke());
     ctx.onExit(() => clearTimeout(idle));
