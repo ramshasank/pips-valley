@@ -19,6 +19,9 @@
     cache.delete(key); cache.set(key, data);
     if (cache.size > 20) cache.delete(cache.keys().next().value);
   }
+  function forget(prefix) {
+    for (const key of cache.keys()) if (key.startsWith(prefix)) cache.delete(key);
+  }
   K.artwork = {
     status: () => problem,
     async get(key) {
@@ -48,14 +51,17 @@
     },
     async removePlayer(id) {
       const prefix = id + ':';
-      for (const key of cache.keys()) if (key.startsWith(prefix)) cache.delete(key);
+      forget(prefix);
       const db = await database(); if (!db) return;
       return new Promise((resolve) => {
         try {
           const tx = db.transaction('paintings', 'readwrite');
           const request = tx.objectStore('paintings').openCursor();
           request.onsuccess = () => { const c = request.result; if (c) { if (String(c.key).startsWith(prefix)) c.delete(); c.continue(); } };
-          tx.oncomplete = tx.onerror = tx.onabort = resolve;
+          // A read started before deletion may have repopulated the cache while this
+          // transaction waited. Clear it again once the stored copies are gone.
+          tx.oncomplete = () => { forget(prefix); resolve(); };
+          tx.onerror = tx.onabort = resolve;
         } catch (e) { resolve(); }
       });
     },

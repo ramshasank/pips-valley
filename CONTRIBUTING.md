@@ -50,6 +50,10 @@ The HTML combines code and fonts; media remains in adjacent folders to avoid a v
 large encoded document. Opening from `file://` does not support recorded speech;
 use a local HTTP server. The project has no offline service worker.
 
+To serve the portable app directly, run `python3 -m http.server 8000 --directory dist`
+and open `http://localhost:8000/`. Its `index.html` is the default entry point;
+`playhouse.html` remains an equivalent entry point for existing links.
+
 Code is MIT licensed. Art, characters, stories and generated recordings use
 CC BY 4.0; fonts retain their SIL OFL license. Preserve attribution and disclose
 AI-generated voice and images when sharing them.

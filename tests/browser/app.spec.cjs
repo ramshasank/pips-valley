@@ -113,11 +113,30 @@ test('portable distribution loads its artwork and recordings from adjacent folde
   const failures = [];
   page.on('response', (r) => { if (r.status() >= 400) failures.push(new URL(r.url()).pathname); });
   page.on('pageerror', (e) => failures.push(e.message));
-  await page.goto('/dist/playhouse.html'); await page.waitForFunction(() => window.K && K.valley);
+  await page.goto('/dist/'); await page.waitForFunction(() => window.K && K.valley);
+  await expect(page).toHaveTitle("Pip's Valley");
+  const alias = await page.request.get('/dist/playhouse.html');
+  expect(await alias.text()).toBe(await (await page.request.get('/dist/index.html')).text());
   await page.evaluate(() => { K.s.voice = false; K.players.add({ name: 'Test', level: 1 }); K.go('paint'); });
   await page.waitForFunction(() => K._paint); await page.waitForTimeout(200);
   expect(await page.evaluate(() => K.activities.length)).toBe(41);
   expect(failures).toEqual([]);
+});
+
+test('deleting paintings clears stored and cached copies even when a read is already pending', async ({ page }) => {
+  await ready(page);
+  const result = await page.evaluate(async () => {
+    const id = K.players.current().id;
+    await K.artwork.put(id + ':blank', 'old painting');
+    for (let i = 0; i < 21; i++) await K.artwork.put('other:' + i, 'another painting');
+    const read = K.artwork.get(id + ':blank');
+    const deletion = K.artwork.removePlayer(id);
+    await Promise.all([read, deletion]);
+    return { id, removed: await K.artwork.get(id + ':blank'), kept: await K.artwork.get('other:0') };
+  });
+  expect(result.removed).toBeNull(); expect(result.kept).toBe('another painting');
+  await page.reload(); await page.waitForFunction(() => window.K && K.valley);
+  expect(await page.evaluate((id) => K.artwork.get(id + ':blank'), result.id)).toBeNull();
 });
 
 test('speech waits for an in-flight recording index and still uses the recording', async ({ page }) => {

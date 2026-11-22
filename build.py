@@ -146,8 +146,9 @@ def build_single():
         shutil.copyfile(os.path.join(ROOT, file), target)
 
     os.makedirs(os.path.join(ROOT, "dist"), exist_ok=True)
-    with open(os.path.join(ROOT, "dist", "playhouse.html"), "w", encoding="utf-8") as f:
-        f.write(html)
+    for name in ("index.html", "playhouse.html"):
+        with open(os.path.join(ROOT, "dist", name), "w", encoding="utf-8") as f:
+            f.write(html)
     return len(html)
 
 
